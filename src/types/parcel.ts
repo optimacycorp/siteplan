@@ -5,6 +5,7 @@ export type ParcelSearchResult = {
   path: string;
   score: number;
   coordinates: [number, number] | null;
+  kind?: "parcel" | "geocode";
 };
 
 export type ParcelDetail = {

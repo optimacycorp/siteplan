@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import maplibregl, { LngLatBounds } from "maplibre-gl";
+import { fetchParcelAtPoint, fetchParcelNeighbors } from "../services/regridParcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
 import { getBasemapDefinition } from "./basemapRegistry";
@@ -17,7 +18,16 @@ export function QuickMapCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const modeRef = useRef(useDrawingStore.getState().mode);
-  const { basemap, selectedParcel, neighbors, layerVisibility } = useQuickSiteStore();
+  const {
+    basemap,
+    selectedParcel,
+    neighbors,
+    layerVisibility,
+    setSelectedParcel,
+    setNeighbors,
+    setSelectedParcelLoading,
+    setSearchError,
+  } = useQuickSiteStore();
   const {
     drawings,
     activePoints,
@@ -72,6 +82,37 @@ export function QuickMapCanvas() {
 
       if (modeRef.current === "select") {
         selectDrawing(null);
+        void (async () => {
+          setSelectedParcelLoading(true);
+          try {
+            const detail = await fetchParcelAtPoint({
+              lng: event.lngLat.lng,
+              lat: event.lngLat.lat,
+            });
+            if (!detail) {
+              setSearchError("No parcel found at that clicked location. Try clicking inside the parcel boundary.");
+              return;
+            }
+
+            setSearchError("");
+            setSelectedParcel(detail);
+            if (detail.centroid) {
+              setNeighbors(
+                await fetchParcelNeighbors({
+                  lng: detail.centroid[0],
+                  lat: detail.centroid[1],
+                  excludeLlUuid: detail.llUuid,
+                }),
+              );
+            } else {
+              setNeighbors([]);
+            }
+          } catch (error) {
+            setSearchError(error instanceof Error ? error.message : "Parcel selection failed");
+          } finally {
+            setSelectedParcelLoading(false);
+          }
+        })();
         return;
       }
 
@@ -118,6 +159,16 @@ export function QuickMapCanvas() {
       });
     }
   }, [selectedParcel?.llUuid]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedParcel?.centroid || selectedParcel.geometry) return;
+    map.flyTo({
+      center: selectedParcel.centroid,
+      zoom: Math.max(map.getZoom(), 17),
+      duration: 350,
+    });
+  }, [selectedParcel?.llUuid, selectedParcel?.centroid, selectedParcel?.geometry]);
 
   return <div className="map-canvas" ref={containerRef} />;
 }

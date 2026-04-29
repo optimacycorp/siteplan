@@ -1,5 +1,6 @@
 import { fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/regridParcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
+import type { ParcelDetail, ParcelSearchResult } from "../types/parcel";
 
 export function AddressSearch() {
   const {
@@ -37,6 +38,15 @@ export function AddressSearch() {
     setSelectedParcelLoading(true);
     setSearchError("");
     try {
+      const result = searchResults.find((entry) => entry.llUuid === llUuid);
+      if (result?.kind === "geocode") {
+        const fallbackParcel = buildGeocodePlaceholder(result);
+        setSelectedParcel(fallbackParcel);
+        setNeighbors([]);
+        setSearchError("No direct parcel match from Regrid. The map is centered on the address, so click the parcel manually.");
+        return;
+      }
+
       const detail = await fetchParcelByUuid(llUuid);
       setSelectedParcel(detail);
       setNeighbors([]);
@@ -54,6 +64,26 @@ export function AddressSearch() {
     } finally {
       setSelectedParcelLoading(false);
     }
+  }
+
+  function buildGeocodePlaceholder(result: ParcelSearchResult): ParcelDetail {
+    const [lng, lat] = result.coordinates ?? [0, 0];
+    return {
+      llUuid: result.llUuid,
+      headline: result.address || "Geocoded address",
+      address: result.address || "Geocoded address",
+      apn: "",
+      zoning: "",
+      floodZone: "",
+      areaAcres: 0,
+      areaSqft: 0,
+      county: "",
+      state: "",
+      path: result.path,
+      geometry: null,
+      centroid: result.coordinates ? [lng, lat] : null,
+      fields: {},
+    };
   }
 
   return (
@@ -98,6 +128,9 @@ export function AddressSearch() {
         >
           <strong>{result.address || result.llUuid}</strong>
           <p className="muted">{result.context || result.path || "Parcel search result"}</p>
+          {result.kind === "geocode" ? (
+            <p className="muted">Geocoded location. Click to center map and select a parcel manually.</p>
+          ) : null}
           <span className="result-meta">{result.llUuid}</span>
         </button>
       ))}

@@ -603,6 +603,7 @@ async function handleSearch(requestUrl, response, signal) {
 
   const merged = [];
   const geocodedPoints = await geocodeAddress(query, signal).catch(() => []);
+  let foundPointParcel = false;
 
   for (const geocodedPoint of geocodedPoints.slice(0, 3)) {
     try {
@@ -610,6 +611,7 @@ async function handleSearch(requestUrl, response, signal) {
       const pointResults = normalizePointSearchResults(pointPayload);
       if (pointResults.length) {
         merged.push(...pointResults);
+        foundPointParcel = true;
         break;
       }
     } catch {
@@ -638,6 +640,18 @@ async function handleSearch(requestUrl, response, signal) {
           ? addressResult.reason
           : new Error("No search results available");
     throw reason;
+  }
+
+  if (!foundPointParcel && geocodedPoints[0]) {
+    merged.unshift({
+      llUuid: `geocode:${geocodedPoints[0].lat.toFixed(6)},${geocodedPoints[0].lng.toFixed(6)}`,
+      address: geocodedPoints[0].displayName,
+      context: "Geocoded address",
+      path: "",
+      score: 5000,
+      coordinates: [geocodedPoints[0].lng, geocodedPoints[0].lat],
+      kind: "geocode",
+    });
   }
 
   sendJson(response, 200, dedupeAndRankResults(merged, query));

@@ -90,6 +90,7 @@ function mapFeatureToSearchResult(feature: RegridParcelFeature): ParcelSearchRes
     path: String(feature.properties?.path ?? ""),
     score: coerceNumber((fields as Record<string, unknown>).score),
     coordinates: pickCentroid(feature.geometry ?? null),
+    kind: "parcel",
   };
 }
 
@@ -108,6 +109,7 @@ function normalizeSearchResults(payload: unknown): ParcelSearchResult[] {
           coordinates: Array.isArray(result.coordinates)
             ? [result.coordinates[0], result.coordinates[1]]
             : null,
+          kind: result.kind === "geocode" ? "geocode" : "parcel",
         },
       ];
     }
@@ -128,6 +130,19 @@ export async function searchParcels(query: string): Promise<ParcelSearchResult[]
 export async function fetchParcelByUuid(llUuid: string): Promise<ParcelDetail | null> {
   const response = await fetchJson<{ feature: RegridParcelFeature | null }>(
     buildUrl(`detail/${encodeURIComponent(llUuid)}`, {}),
+  );
+  return mapFeatureToDetail(response.feature);
+}
+
+export async function fetchParcelAtPoint(input: {
+  lat: number;
+  lng: number;
+}): Promise<ParcelDetail | null> {
+  const response = await fetchJson<{ feature: RegridParcelFeature | null }>(
+    buildUrl("point", {
+      lat: input.lat,
+      lng: input.lng,
+    }),
   );
   return mapFeatureToDetail(response.feature);
 }
