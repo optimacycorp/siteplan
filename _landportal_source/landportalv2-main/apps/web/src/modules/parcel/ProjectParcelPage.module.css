@@ -1,0 +1,403 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 22px 24px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+}
+
+.headerCopy {
+  display: grid;
+  gap: 6px;
+}
+
+.headerCopy p,
+.muted,
+.helper,
+.smallMeta {
+  color: var(--color-text-muted);
+}
+
+.smallMeta {
+  font-size: 12px;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 64px 240px minmax(0, 1fr) 320px;
+  min-height: 78vh;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #181b1f;
+  border: 1px solid rgba(34, 39, 46, 0.92);
+  box-shadow: 0 26px 60px rgba(7, 10, 17, 0.24);
+}
+
+.shellSidebarCollapsed {
+  grid-template-columns: 64px 288px minmax(0, 1fr) 320px;
+}
+
+.shellInspectorCollapsed {
+  grid-template-columns: 64px 220px minmax(0, 1fr) 56px;
+}
+
+.shellSidebarCollapsed.shellInspectorCollapsed {
+  grid-template-columns: 64px 288px minmax(0, 1fr) 56px;
+}
+
+.leftRail,
+.sidebar,
+.inspector {
+  background: #16191e;
+}
+
+.leftRail {
+  border-right: 1px solid rgba(63, 72, 85, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 10px;
+}
+
+.railGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.railButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(86, 96, 112, 0.78);
+  background: rgba(255, 255, 255, 0.03);
+  color: #dde5ef;
+  font-weight: 800;
+}
+
+.railButtonActive {
+  background: rgba(235, 187, 72, 0.14);
+  border-color: rgba(235, 187, 72, 0.6);
+  color: #f1c44c;
+}
+
+.railMeta {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: rgba(196, 204, 214, 0.65);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(63, 72, 85, 0.75);
+  display: grid;
+  align-content: start;
+}
+
+.sidebarCollapsed {
+  align-content: stretch;
+}
+
+.inspector {
+  border-left: 1px solid rgba(63, 72, 85, 0.75);
+  display: grid;
+  align-content: start;
+}
+
+.inspectorCollapsed {
+  overflow: hidden;
+}
+
+.panelHeader {
+  padding: 18px;
+  border-bottom: 1px solid rgba(63, 72, 85, 0.75);
+  display: grid;
+  gap: 8px;
+}
+
+.search {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(72, 81, 95, 0.88);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2f5f8;
+  padding: 10px 12px;
+}
+
+.search::placeholder {
+  color: rgba(208, 216, 224, 0.55);
+}
+
+.sectionLabel {
+  color: rgba(208, 216, 224, 0.58);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 2px 0;
+}
+
+.panelHeader strong,
+.detailCard strong {
+  color: #f2f5f8;
+}
+
+.panelHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.collapseButton {
+  border: 1px solid rgba(86, 96, 112, 0.78);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8e1eb;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.parcelList,
+.scenarioList,
+.toolDrawer {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.collapsedSidebarCard {
+  padding: 16px 12px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.quickTileStack {
+  display: grid;
+  gap: 10px;
+}
+
+.parcelButton,
+.drawerCard {
+  border: 1px solid rgba(72, 81, 95, 0.85);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 18px;
+  padding: 14px;
+  text-align: left;
+  display: grid;
+  gap: 5px;
+  color: #f1f4f8;
+}
+
+.parcelButtonActive {
+  background: rgba(233, 188, 83, 0.12);
+  border-color: rgba(233, 188, 83, 0.5);
+}
+
+.parcelButtonHover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(240, 196, 91, 0.42);
+  transform: translateY(-1px);
+}
+
+.canvas {
+  position: relative;
+  min-height: 78vh;
+  overflow: hidden;
+  background: linear-gradient(180deg, #38493f, #2f4137);
+}
+
+.canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 104px 104px, 104px 104px;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.quickTileCard {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(18, 20, 25, 0.95);
+  border: 1px solid rgba(87, 96, 114, 0.72);
+  box-shadow: 0 20px 40px rgba(6, 10, 18, 0.28);
+}
+
+.quickTileCard strong {
+  font-size: 1.05rem;
+}
+
+.quickTileCard span {
+  color: rgba(226, 232, 238, 0.8);
+  font-size: 13px;
+}
+
+.quickTileContour {
+  border-color: rgba(48, 193, 117, 0.45);
+}
+
+.quickTileSelection {
+  border-color: rgba(106, 160, 246, 0.45);
+}
+
+.quickTileSelection strong {
+  color: #9fc0ff;
+}
+
+.quickTileContour strong {
+  color: #34d27e;
+}
+
+.quickTileSitePlan {
+  border-color: rgba(237, 127, 127, 0.45);
+}
+
+.quickTileSitePlan strong {
+  color: #f08f8f;
+}
+
+.floatingActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metricsBar {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 3;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.metricChip {
+  min-width: 140px;
+  padding: 12px 14px;
+  background: rgba(22, 25, 30, 0.9);
+  border: 1px solid rgba(72, 81, 95, 0.8);
+  border-radius: 16px;
+  color: #f1f4f8;
+}
+
+.detailCard {
+  padding: 18px;
+  border-bottom: 1px solid rgba(63, 72, 85, 0.75);
+  display: grid;
+  gap: 10px;
+  color: #eff4f8;
+}
+
+.detailActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detailCard:last-child {
+  border-bottom: 0;
+}
+
+.kv,
+.constraintRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(55, 200, 122, 0.12);
+  color: #52d78f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.emptyState {
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+@media (max-width: 1380px) {
+  .shell,
+  .shellInspectorCollapsed {
+    grid-template-columns: 64px 220px minmax(0, 1fr) 300px;
+  }
+
+  .shellSidebarCollapsed {
+    grid-template-columns: 64px 288px minmax(0, 1fr) 300px;
+  }
+
+  .shellSidebarCollapsed.shellInspectorCollapsed {
+    grid-template-columns: 64px 288px minmax(0, 1fr) 56px;
+  }
+}
+
+@media (max-width: 1120px) {
+  .shell {
+    grid-template-columns: 64px 220px minmax(0, 1fr);
+  }
+
+  .shellInspectorCollapsed {
+    grid-template-columns: 64px 220px minmax(0, 1fr);
+  }
+
+  .inspector {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid rgba(63, 72, 85, 0.75);
+  }
+
+  .inspectorCollapsed {
+    display: none;
+  }
+}
+
+@media (max-width: 920px) {
+  .shell,
+  .shellInspectorCollapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .leftRail {
+    display: none;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(63, 72, 85, 0.75);
+  }
+
+  .quickTileCard {
+    width: auto;
+  }
+}

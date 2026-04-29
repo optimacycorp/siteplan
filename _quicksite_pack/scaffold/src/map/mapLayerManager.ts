@@ -1,0 +1,41 @@
+import type maplibregl from "maplibre-gl";
+
+type GeoJsonMapSource = { type: "geojson"; data: GeoJSON.FeatureCollection };
+
+export type MapLayerDescriptor = {
+  id: string;
+  sourceId: string;
+  source: GeoJsonMapSource;
+  layer: {
+    type: "circle" | "line" | "fill" | "symbol";
+    paint?: Record<string, unknown>;
+    layout?: Record<string, unknown>;
+  };
+  visible?: boolean;
+  interactive?: boolean;
+};
+
+export function registerMapLayers(map: maplibregl.Map, descriptors: MapLayerDescriptor[]) {
+  descriptors.forEach((descriptor) => {
+    const existingSource = map.getSource(descriptor.sourceId) as maplibregl.GeoJSONSource | undefined;
+    if (existingSource) {
+      existingSource.setData(descriptor.source.data);
+    } else {
+      map.addSource(descriptor.sourceId, { type: "geojson", data: descriptor.source.data });
+    }
+
+    if (!map.getLayer(descriptor.id)) {
+      map.addLayer({
+        id: descriptor.id,
+        type: descriptor.layer.type,
+        source: descriptor.sourceId,
+        paint: descriptor.layer.paint as never,
+        layout: { visibility: descriptor.visible === false ? "none" : "visible", ...(descriptor.layer.layout ?? {}) } as never,
+      } as maplibregl.LayerSpecification);
+      return;
+    }
+
+    map.setLayoutProperty(descriptor.id, "visibility", descriptor.visible === false ? "none" : "visible");
+    Object.entries(descriptor.layer.paint ?? {}).forEach(([key, value]) => map.setPaintProperty(descriptor.id, key, value as never));
+  });
+}

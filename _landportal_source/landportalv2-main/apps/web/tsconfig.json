@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"],
+      "@landportal/auth": ["../../../packages/auth/src/index.ts"],
+      "@landportal/api-client": ["../../../packages/api-client/src/index.ts"],
+      "@landportal/core-survey": ["../../../packages/core-survey/src/index.ts"],
+      "@landportal/core-geometry": ["../../../packages/core-geometry/src/index.ts"],
+      "@landportal/map-core": ["../../../packages/map-core/src/index.ts"],
+      "@landportal/core-parcel": ["../../../packages/core-parcel/src/index.ts"],
+      "@landportal/core-yield": ["../../../packages/core-yield/src/index.ts"],
+      "@landportal/core-subdivision": ["../../../packages/core-subdivision/src/index.ts"],
+      "@landportal/core-siteplanner": ["../../../packages/core-siteplanner/src/index.ts"],
+      "@landportal/core-documents": ["../../../packages/core-documents/src/index.ts"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}

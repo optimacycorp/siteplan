@@ -1,0 +1,83 @@
+.toolbar {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+
+.modeWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: rgba(255, 255, 255, 0.93);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(20, 28, 45, 0.08);
+}
+
+.modeButton {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modeButtonActive {
+  background: rgba(37, 66, 119, 0.11);
+  color: var(--color-text);
+}
+
+.button,
+.chip,
+.select {
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: rgba(255, 255, 255, 0.93);
+  color: var(--color-text);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(20, 28, 45, 0.08);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.selectWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selectLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.select {
+  appearance: none;
+}

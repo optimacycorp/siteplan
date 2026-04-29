@@ -1,0 +1,8 @@
+Priority,File/Area,Patch,Goal,Acceptance Criteria
+P0,titleChainTileModel.ts,Friendly title precedence,"Use visible chain text, not tokenized strings",Card title is friendly and deterministic
+P0,TitleChainDocumentTile.tsx,40-char truncated reference,Shorten reference with hover full text,Reference display is clean and hover reveals full text
+P0,ProjectTitlePage.tsx,Commitment field precedence,Show extracted values from first-class fields or metadata,Stack fields are not blank when data exists
+P0,ProjectTitlePage.module.css,Preview overlay cleanup,Fix modal sizing/layering/overflow,Preview is centered and contained
+P1,useTitleCommitments.ts,Workspace field mapping,Surface parsed values to UI consistently,UI receives populated commitment fields
+P1,title workspace queries,Preserve refetch/invalidation,Avoid stale UI after delete/unlink,No stale title-linked docs remain visible
+P2,Sprint rewrite docs,Codex patch format,Make next sprint plans easier for Codex to follow,Future tasks are narrower and more deterministic

@@ -1,0 +1,16 @@
+Sprint,Priority,Area,Patch,Goal,Acceptance Criteria
+Pre-sprint,P0,Title,Friendly titles + truncated refs,Readable child title-chain cards,No raw token titles; 40-char truncation with hover
+Pre-sprint,P0,Title,Commitment field precedence,Populate stack card values,Field->metadata->fallback works
+Pre-sprint,P0,Title,Preview overlay cleanup,Readable modal preview,Centered and contained preview
+Pre-sprint,P1,Title,Supporting stack filter + invalidation,No stale title-linked docs,Delete/unlink refreshes UI
+Sprint 1,P0,Parcel,Expose geometry+bbox on active parcel,Make parcel anchor map-ready,Selected parcel can drive fitBounds
+Sprint 1,P0,Map,Auto-fit selected parcel,Viewport centers on parcel,Map fits on load/change without loops
+Sprint 1,P0,Designer,Render selected parcel,Map-backed parcel context in designer,Selected parcel highlighted in designer
+Sprint 1,P0,Parcel provider,Fetch adjoining parcels by bbox,Provide surrounding parcel context,Designer receives neighboring parcels
+Sprint 1,P1,Map utilities,Selected/adjoining parcel layer helpers,Reusable consistent styling,Layer styling matches across views
+Sprint 2,P0,Survey,Parcel vs survey compare,Reviewable spatial comparison,Compare overlay and issues visible
+Sprint 2,P0,Constraints,Setbacks/frontage/manual exclusions,Generate buildable envelope inputs,Constraint layers render
+Sprint 2,P0,Design,Use buildable envelope in metrics,Constraint-aware design,Scenario metrics use envelope
+Sprint 2,P1,Title integration,Spatial title issues,Show title-derived issues in review context,Issues visible on parcel/survey/design views
+Sprint 3,P1,Reporting,Export title/survey/constraint summaries,Reviewable outputs,Exports generated cleanly
+Sprint 3,P1,UX,Badges/legends/labels polish,Clearer review experience,Presentation-ready review UX

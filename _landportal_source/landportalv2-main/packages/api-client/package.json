@@ -1,0 +1,18 @@
+{
+  "name": "@landportal/api-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./parcel": "./src/parcel.ts"
+  },
+  "dependencies": {
+    "@landportal/core-parcel": "workspace:*"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  }
+}

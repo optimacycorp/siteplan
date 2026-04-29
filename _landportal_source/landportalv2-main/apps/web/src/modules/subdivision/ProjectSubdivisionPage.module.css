@@ -1,0 +1,476 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+}
+
+.headerCopy,
+.panelHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.headerCopy p,
+.helper,
+.muted {
+  color: var(--color-text-muted);
+}
+
+.headerActions,
+.metricsBar,
+.toolbarMeta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shell {
+  min-height: 760px;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 360px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+}
+
+.sidebar,
+.inspector {
+  background: rgba(255, 255, 255, 0.84);
+  display: grid;
+  align-content: start;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+.inspector {
+  border-left: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+.panelHeader {
+  padding: 18px;
+  border-bottom: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+.optionList,
+.optionListCompact {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.optionButton,
+.savedCard {
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.optionButton {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.optionSelect {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+}
+
+.optionDelete {
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8c2f39;
+}
+
+.deleteError {
+  border: 1px solid rgba(176, 65, 79, 0.24);
+  background: rgba(176, 65, 79, 0.08);
+  color: #8c2f39;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.optionButtonActive {
+  background: var(--color-accent-soft);
+  border-color: #b6c6f5;
+}
+
+.savedCardPrimary {
+  border-color: #b6c6f5;
+  background: var(--color-accent-soft);
+}
+
+.savedCardCompare {
+  border-color: rgba(210, 161, 67, 0.6);
+  background: rgba(210, 161, 67, 0.08);
+}
+
+.savedActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.savedActionLink,
+.compareAction {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: white;
+  padding: 8px 12px;
+}
+
+.frontageActionActive {
+  border-color: rgba(210, 131, 36, 0.72);
+  background: rgba(210, 131, 36, 0.12);
+  color: #8b5610;
+  font-weight: 700;
+}
+
+.canvasWrap {
+  position: relative;
+  min-height: 760px;
+  background: linear-gradient(180deg, #edf1f7, #e6ebf4);
+}
+
+.compareBanner {
+  position: absolute;
+  top: 128px;
+  left: 18px;
+  right: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.compareSummary {
+  display: grid;
+  gap: 4px;
+}
+
+.toolbar {
+  position: absolute;
+  top: 82px;
+  left: 18px;
+  right: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nameInput,
+.field input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 11px 13px;
+  background: white;
+}
+
+.nameInput {
+  max-width: 280px;
+}
+
+.strategyPill,
+.success {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.strategyPill {
+  background: rgba(35, 50, 82, 0.1);
+  color: #223250;
+}
+
+.success {
+  background: rgba(30, 141, 98, 0.12);
+  color: var(--color-success);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.parcelPolygon {
+  fill: rgba(54, 95, 194, 0.16);
+  stroke: #20304f;
+  stroke-width: 2;
+}
+
+.envelopePolygon {
+  fill: rgba(30, 141, 98, 0.12);
+  stroke: rgba(30, 141, 98, 0.8);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 1;
+}
+
+.constraintPolygon {
+  fill: rgba(201, 79, 79, 0.18);
+  stroke: rgba(160, 52, 52, 0.75);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+}
+
+.roadPolygon {
+  fill: rgba(73, 85, 104, 0.18);
+  stroke: #4a5568;
+  stroke-width: 1.2;
+}
+
+.frontageLine {
+  stroke: #d28324;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+}
+
+.lotPolygon {
+  fill: rgba(255, 255, 255, 0.82);
+  stroke: #1b2e60;
+  stroke-width: 1.5;
+}
+
+.invalidLotPolygon {
+  fill: rgba(201, 79, 79, 0.22);
+  stroke: #9e3535;
+}
+
+.lotLabel {
+  fill: #223250;
+  font-size: 2.5px;
+  font-weight: 700;
+}
+
+.metricsBar {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 3;
+}
+
+.mapInfoCard {
+  position: absolute;
+  left: 18px;
+  top: 188px;
+  z-index: 3;
+  min-width: 220px;
+  max-width: 320px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(217, 222, 232, 0.92);
+  box-shadow: 0 10px 28px rgba(20, 28, 45, 0.12);
+}
+
+.metricChip,
+.formCard {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.metricChip {
+  min-width: 132px;
+}
+
+.compareStage {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 102px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compareCanvasCard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.compareCanvasHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.compareCanvas {
+  width: 100%;
+  aspect-ratio: 1.3 / 1;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #edf1f7, #e6ebf4);
+}
+
+.compareLotPolygon {
+  fill: rgba(210, 161, 67, 0.22);
+  stroke: #9a6b16;
+  stroke-width: 1.4;
+}
+
+.formCard {
+  margin: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.fieldRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.toggleField {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.microActions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.warning,
+.warningStrong {
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.warning {
+  background: rgba(207, 151, 51, 0.14);
+  color: #865e12;
+}
+
+.warningStrong {
+  background: rgba(201, 79, 79, 0.12);
+  color: #8b2d2d;
+}
+
+.reasonList {
+  display: grid;
+  gap: 8px;
+}
+
+.emptyState {
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+@media (max-width: 1240px) {
+  .shell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .inspector {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid rgba(217, 222, 232, 0.85);
+  }
+
+  .compareStage {
+    position: static;
+    margin: 120px 18px 90px;
+  }
+}
+
+@media (max-width: 980px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(217, 222, 232, 0.85);
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nameInput {
+    max-width: none;
+  }
+
+  .compareBanner,
+  .compareCanvasHeader,
+  .savedActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .compareStage {
+    grid-template-columns: 1fr;
+  }
+}

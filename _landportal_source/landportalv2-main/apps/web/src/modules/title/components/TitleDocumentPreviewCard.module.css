@@ -1,0 +1,80 @@
+.muted {
+  color: var(--color-text-muted);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.previewLink {
+  width: fit-content;
+  border: 1px solid var(--color-border);
+  background: rgba(244, 247, 252, 0.98);
+  color: var(--color-accent);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.previewFrame {
+  width: 100%;
+  min-height: 420px;
+  height: min(70vh, 860px);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: white;
+}
+
+.previewImage {
+  width: 100%;
+  max-height: 70vh;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  object-fit: contain;
+  background: white;
+}
+
+.previewModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.56);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 50;
+  overflow: auto;
+}
+
+.previewModalCard {
+  width: min(1100px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 24px;
+  background: white;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  box-shadow: var(--shadow-1);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  overscroll-behavior: contain;
+}
+
+.docCard {
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}

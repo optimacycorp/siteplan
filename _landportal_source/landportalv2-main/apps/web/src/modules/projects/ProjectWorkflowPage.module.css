@@ -1,0 +1,297 @@
+.page {
+  display: grid;
+  gap: 22px;
+}
+
+.hero,
+.panel,
+.stepCard,
+.summaryCard,
+.insightCard {
+  border-radius: 24px;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-1);
+}
+
+.hero {
+  display: grid;
+  gap: 18px;
+  padding: 26px 28px;
+  background:
+    linear-gradient(135deg, rgba(24, 39, 82, 0.96), rgba(39, 82, 176, 0.78)),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 28%);
+  color: white;
+}
+
+.heroTop,
+.heroActions,
+.stepHeader,
+.inlineMeta,
+.ctaRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.heroTop,
+.stepHeader {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.heroText,
+.stepBody,
+.summaryBody,
+.insightBody {
+  display: grid;
+  gap: 8px;
+}
+
+.heroText p,
+.muted,
+.stepBody p,
+.summaryBody p,
+.insightBody p {
+  color: var(--color-text-muted);
+}
+
+.hero .muted,
+.heroText p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.badge,
+.statusPill,
+.workspacePill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspacePill {
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+
+.statusPill {
+  background: rgba(45, 132, 87, 0.12);
+  color: var(--color-success);
+}
+
+.badge {
+  background: rgba(41, 59, 117, 0.08);
+  color: #223250;
+}
+
+.stats,
+.summaryGrid,
+.insightGrid,
+.stepGrid,
+.handoffGrid,
+.decisionGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.selectionGrid,
+.selectionList,
+.compareGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statCard {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.statCard span {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statCard strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.8rem;
+}
+
+.panel {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.workflowBanner,
+.handoffCard {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.workflowBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.workflowBannerBody {
+  display: grid;
+  gap: 6px;
+}
+
+.summaryGrid,
+.insightGrid,
+.stepGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.handoffGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.decisionGrid {
+  grid-template-columns: 1.1fr 1fr;
+}
+
+.selectionGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compareGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summaryCard,
+.insightCard,
+.stepCard {
+  padding: 18px;
+}
+
+.stepCard {
+  display: grid;
+  gap: 14px;
+}
+
+.stepNumber {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(39, 82, 176, 0.12);
+  color: #2c3f87;
+  font-weight: 700;
+}
+
+.kpis,
+.warningList {
+  display: grid;
+  gap: 10px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.kv:last-child {
+  border-bottom: 0;
+}
+
+.warningItem {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(207, 151, 51, 0.12);
+  color: #8b6315;
+}
+
+.successItem {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(45, 132, 87, 0.1);
+  color: var(--color-success);
+}
+
+.selectionButton {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: white;
+  text-align: left;
+}
+
+.selectionButtonActive {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.compareCard {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  background: white;
+  display: grid;
+  gap: 10px;
+}
+
+.handoffCard {
+  background: white;
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 1100px) {
+  .stats,
+  .compareGrid,
+  .selectionGrid,
+  .summaryGrid,
+  .insightGrid,
+  .stepGrid,
+  .handoffGrid,
+  .decisionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .heroTop,
+  .heroActions,
+  .stepHeader,
+  .ctaRow,
+  .workflowBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stats,
+  .compareGrid,
+  .selectionGrid,
+  .summaryGrid,
+  .insightGrid,
+  .stepGrid,
+  .handoffGrid,
+  .decisionGrid {
+    grid-template-columns: 1fr;
+  }
+}

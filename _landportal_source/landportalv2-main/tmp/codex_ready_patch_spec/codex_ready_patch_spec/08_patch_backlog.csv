@@ -1,0 +1,6 @@
+Priority,File,Patch,Goal,Acceptance Criteria
+P0,ProjectTitlePage.tsx,Supporting stack filter,Exclude title-import child docs from supporting stack,Title-linked child docs no longer appear there
+P0,useTitleCommitments.ts,Delete/unlink invalidation,Refetch title workspace and project docs after mutations,No stale UI after delete/unlink
+P0,titleCommitmentParser.ts,Title precedence fix,Prefer visible chain text over synthetic fallback,Full chain text appears in tiles
+P1,titleChainTileModel.ts or equivalent,Synthetic title detection,Prevent synthetic titles from winning when better text exists,Tiles prefer visible/reference text
+P1,tests near title module,Targeted regression coverage,Protect against reintroducing the same bugs,Acceptance tests pass

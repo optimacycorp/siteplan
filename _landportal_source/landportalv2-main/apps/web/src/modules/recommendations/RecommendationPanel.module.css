@@ -1,0 +1,73 @@
+.panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: white;
+}
+
+.eyebrow,
+.metricCard span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.riskRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.riskBadge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.riskLow {
+  background: rgba(45, 132, 87, 0.12);
+  color: var(--color-success);
+}
+
+.riskMedium {
+  background: rgba(207, 151, 51, 0.14);
+  color: #8b6315;
+}
+
+.riskHigh {
+  background: rgba(201, 79, 79, 0.12);
+  color: #8b2d2d;
+}
+
+.metricCard {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(244, 246, 250, 0.8);
+  display: grid;
+  gap: 6px;
+}
+
+.metricCard strong {
+  font-size: 1.8rem;
+}
+
+.actionBlock,
+.notes {
+  display: grid;
+  gap: 8px;
+}
+
+.actionBlock p {
+  color: var(--color-text-muted);
+}
+
+.note {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 222, 232, 0.9);
+  background: rgba(248, 249, 251, 0.8);
+}

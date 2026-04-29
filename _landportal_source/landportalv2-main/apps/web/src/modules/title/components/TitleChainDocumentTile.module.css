@@ -1,0 +1,123 @@
+.tile {
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.header {
+  display: grid;
+  gap: 4px;
+}
+
+.title {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.reference {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  font-size: 13px;
+}
+
+.metaRow {
+  display: grid;
+  gap: 2px;
+}
+
+.metaLabel {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metaValue {
+  color: var(--color-text);
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background: rgba(244, 247, 252, 0.98);
+}
+
+.badgeStored {
+  background: rgba(44, 190, 123, 0.12);
+  color: #177a4a;
+  border-color: rgba(44, 190, 123, 0.28);
+}
+
+.badgeReview {
+  background: rgba(232, 166, 40, 0.14);
+  color: #8f5d00;
+  border-color: rgba(232, 166, 40, 0.28);
+}
+
+.badgeFailed {
+  background: rgba(197, 61, 61, 0.12);
+  color: #962d2d;
+  border-color: rgba(197, 61, 61, 0.28);
+}
+
+.badgePending {
+  background: rgba(79, 118, 199, 0.12);
+  color: #3359ad;
+  border-color: rgba(79, 118, 199, 0.28);
+}
+
+.linkSection {
+  display: grid;
+  gap: 8px;
+}
+
+.linkRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.linkLabel {
+  min-width: 96px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.linkHost {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .metaGrid {
+    grid-template-columns: 1fr;
+  }
+}

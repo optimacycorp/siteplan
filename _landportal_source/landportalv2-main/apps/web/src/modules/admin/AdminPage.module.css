@@ -1,0 +1,138 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.hero {
+  padding: 22px 24px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+  display: grid;
+  gap: 8px;
+}
+
+.hero p,
+.muted {
+  color: var(--color-text-muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 18px;
+}
+
+.panel {
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+  display: grid;
+  gap: 16px;
+}
+
+.panelHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.item {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: white;
+  display: grid;
+  gap: 5px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(27, 46, 96, 0.1);
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.success {
+  background: rgba(30, 141, 98, 0.12);
+  color: var(--color-success);
+}
+
+.warn {
+  background: rgba(201, 79, 79, 0.12);
+  color: var(--color-danger);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metricCard {
+  padding: 14px;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid var(--color-border);
+}
+
+.metricCard strong {
+  display: block;
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.formGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 11px 12px;
+  background: white;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

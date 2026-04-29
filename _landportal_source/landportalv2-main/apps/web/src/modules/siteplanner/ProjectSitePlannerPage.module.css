@@ -1,0 +1,299 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+}
+
+.headerCopy,
+.panelHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.headerCopy p,
+.helper,
+.note,
+.signalCard span {
+  color: var(--color-text-muted);
+}
+
+.headerActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shell {
+  min-height: 760px;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+}
+
+.sidebar,
+.inspector {
+  background: rgba(255, 255, 255, 0.84);
+  display: grid;
+  align-content: start;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+.inspector {
+  border-left: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+.panelHeader {
+  padding: 18px;
+  border-bottom: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+.layerList,
+.elementList {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.layerCard,
+.infoCard,
+.elementButton {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.layerCard,
+.infoCard {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.layerRow,
+.layerMeta,
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.layerToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layerLock,
+.controlButton {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #f8f9fb;
+  padding: 8px 10px;
+}
+
+.opacitySlider {
+  width: 100%;
+}
+
+.elementButton {
+  padding: 12px 14px;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+}
+
+.elementButtonActive {
+  border-color: #b6c6f5;
+  background: var(--color-accent-soft);
+}
+
+.canvasWrap {
+  background: linear-gradient(180deg, #edf1f7, #e6ebf4);
+  padding: 18px;
+}
+
+.printFrame {
+  position: relative;
+  width: 100%;
+  min-height: 724px;
+  border-radius: 24px;
+  border: 2px solid #2f3643;
+  background: #fffdf7;
+  overflow: hidden;
+}
+
+.printHeader {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  z-index: 3;
+  display: grid;
+  gap: 6px;
+}
+
+.titleInput {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.95);
+}
+
+.canvas {
+  position: absolute;
+  inset: 36px 36px 120px 36px;
+  width: calc(100% - 72px);
+  height: calc(100% - 156px);
+}
+
+.parcelPolygon {
+  fill: rgba(84, 118, 194, 0.12);
+  stroke: #233252;
+  stroke-width: 1.8;
+}
+
+.buildingPolygon {
+  fill: rgba(221, 211, 191, 0.95);
+  stroke: #665843;
+  stroke-width: 1.2;
+}
+
+.treeSymbol {
+  fill: #3e8456;
+  stroke: #24563a;
+  stroke-width: 0.5;
+}
+
+.utilityLine {
+  fill: rgba(52, 117, 185, 0.18);
+  stroke: #3475b9;
+  stroke-width: 1.4;
+  stroke-dasharray: 2 1;
+}
+
+.layoutGuidePolygon {
+  fill: rgba(56, 90, 191, 0.08);
+  stroke: rgba(56, 90, 191, 0.7);
+  stroke-width: 0.9;
+}
+
+.compareGuidePolygon {
+  fill: rgba(210, 161, 67, 0.08);
+  stroke: rgba(154, 107, 22, 0.78);
+  stroke-width: 0.9;
+  stroke-dasharray: 2 1;
+}
+
+.easementPolygon {
+  fill: rgba(204, 170, 91, 0.16);
+  stroke: #b07f20;
+  stroke-width: 1.2;
+  stroke-dasharray: 1 1;
+}
+
+.rowPolygon {
+  fill: rgba(88, 96, 109, 0.1);
+  stroke: #58606d;
+  stroke-width: 1.2;
+  stroke-dasharray: 3 2;
+}
+
+.selectedElement {
+  filter: drop-shadow(0 0 6px rgba(44, 55, 212, 0.35));
+  stroke-width: 2;
+}
+
+.legend,
+.titleBlock {
+  position: absolute;
+  bottom: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #2f3643;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.legend {
+  left: 20px;
+}
+
+.titleBlock {
+  right: 20px;
+  min-width: 240px;
+}
+
+.row {
+  font-size: 14px;
+}
+
+.controlGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quickActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.emptyState {
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+}
+
+@media (max-width: 1240px) {
+  .shell {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .inspector {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid rgba(217, 222, 232, 0.85);
+  }
+}
+
+@media (max-width: 980px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(217, 222, 232, 0.85);
+  }
+
+  .quickActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

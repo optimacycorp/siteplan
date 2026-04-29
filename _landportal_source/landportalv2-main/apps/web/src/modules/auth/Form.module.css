@@ -1,0 +1,41 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.link {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.note,
+.warning,
+.error {
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+}
+
+.note {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.warning {
+  background: #fff2dc;
+  color: #8a5a12;
+}
+
+.error {
+  background: #fce6e6;
+  color: #9d3131;
+}

@@ -1,0 +1,7 @@
+Priority,File/Area,Patch,Goal,Acceptance Criteria
+P0,useProjectParcelSelection.ts,Expose geometry+bbox,Make active parcel anchor map-ready,Selected parcel can drive fitBounds
+P0,MapCanvas.tsx,Auto-fit selected parcel,Center/zoom map to parcel on load/change,Selected parcel is immediately visible
+P0,Designer map component,Show selected parcel,Use real map-backed parcel display in designer,Selected parcel is highlighted in designer
+P0,Parcel provider service,Fetch adjoining parcels by bbox,Provide surrounding parcel context,Designer gets neighboring parcel features
+P1,Shared map utilities,Selected/adjoining parcel layer helpers,Keep styling reusable and consistent,Parcel layers match across views
+P2,Sprint docs,Codex patch format rewrite,Make future work easier for Codex to execute,Tasks are narrow and deterministic

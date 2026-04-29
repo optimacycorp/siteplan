@@ -1,0 +1,27 @@
+{
+  "name": "landportalv2",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "build:full": "node scripts/build-full.mjs",
+    "test": "turbo run test",
+    "test:units": "vitest run packages/core-survey/src/index.test.ts packages/map-core/src/index.test.ts packages/core-subdivision/src/index.test.ts packages/core-parcel/src/index.test.ts packages/core-yield/src/index.test.ts",
+    "lint": "turbo run lint",
+    "seed:supabase-admins": "node scripts/supabase-seed-admins.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  }
+}

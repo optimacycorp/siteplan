@@ -1,0 +1,14 @@
+.wrap {
+  min-height: 40vh;
+  display: grid;
+  place-items: center;
+}
+
+.card {
+  padding: 20px 24px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(217, 222, 232, 0.85);
+  box-shadow: var(--shadow-1);
+  color: var(--color-text-muted);
+}
