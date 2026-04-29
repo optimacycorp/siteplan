@@ -5,11 +5,16 @@ const port = Number(process.env.PORT || 8787);
 const regridToken = process.env.REGRID_API_TOKEN || "";
 const regridApiBaseUrl = (process.env.REGRID_API_BASE_URL || "https://app.regrid.com/api/v2").replace(/\/+$/, "");
 const requestTimeoutMs = Number(process.env.REGRID_REQUEST_TIMEOUT_MS || 15000);
+const geocoderApiBaseUrl = (process.env.GEOCODER_API_BASE_URL || "https://nominatim.openstreetmap.org").replace(/\/+$/, "");
+const geocoderUserAgent = process.env.GEOCODER_USER_AGENT || "OptimacyQuickSite/0.1 (+https://siteplan.gomil.com)";
 
 if (!regridToken) {
   console.error("Missing REGRID_API_TOKEN environment variable.");
   process.exit(1);
 }
+
+const geocodeCache = new Map();
+let nextGeocodeAllowedAt = 0;
 
 const stateAliases = new Map([
   ["alabama", "al"], ["alaska", "ak"], ["arizona", "az"], ["arkansas", "ar"],
@@ -72,9 +77,7 @@ async function fetchJson(pathname, params, signal) {
 
   try {
     const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
       signal: timeout.signal,
     });
 
@@ -229,6 +232,22 @@ function dedupeAndRankResults(results, query) {
     .map(({ relevance: _relevance, ...result }) => result);
 }
 
+function pickCentroid(geometry) {
+  if (!geometry) return null;
+  if (geometry.type === "Point" && Array.isArray(geometry.coordinates)) {
+    return [geometry.coordinates[0], geometry.coordinates[1]];
+  }
+  if (geometry.type === "Polygon") {
+    const first = geometry.coordinates?.[0]?.[0];
+    return first ? [first[0], first[1]] : null;
+  }
+  if (geometry.type === "MultiPolygon") {
+    const first = geometry.coordinates?.[0]?.[0]?.[0];
+    return first ? [first[0], first[1]] : null;
+  }
+  return null;
+}
+
 function normalizeTypeaheadResults(payload) {
   const features = payload?.parcel_centroids?.features;
   if (!Array.isArray(features)) return [];
@@ -270,6 +289,28 @@ function normalizeAddressResults(payload) {
   });
 }
 
+function normalizePointSearchResults(payload) {
+  const features = payload?.parcels?.features;
+  if (!Array.isArray(features)) return [];
+  return features.flatMap((feature) => {
+    const properties = feature?.properties;
+    const fields = properties?.fields || {};
+    const llUuid = properties?.ll_uuid;
+    if (!llUuid) return [];
+    const city = String(fields.city || fields.municipality || "");
+    const state = String(fields.state2 || "");
+    const context = [city, state].filter(Boolean).join(", ");
+    return [{
+      llUuid: String(llUuid),
+      address: String(fields.address || properties.headline || llUuid),
+      context,
+      path: String(properties.path || ""),
+      score: 1000,
+      coordinates: pickCentroid(feature?.geometry) || null,
+    }];
+  });
+}
+
 function featureToDetail(feature) {
   if (!feature?.properties) return null;
   const fields = feature.properties.fields || {};
@@ -292,20 +333,79 @@ function featureToDetail(feature) {
   };
 }
 
-function pickCentroid(geometry) {
-  if (!geometry) return null;
-  if (geometry.type === "Point" && Array.isArray(geometry.coordinates)) {
-    return [geometry.coordinates[0], geometry.coordinates[1]];
+async function waitForGeocoderSlot() {
+  const now = Date.now();
+  const delayMs = Math.max(0, nextGeocodeAllowedAt - now);
+  nextGeocodeAllowedAt = Math.max(now, nextGeocodeAllowedAt) + 1100;
+  if (delayMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-  if (geometry.type === "Polygon") {
-    const first = geometry.coordinates?.[0]?.[0];
-    return first ? [first[0], first[1]] : null;
+}
+
+async function geocodeAddress(query, signal) {
+  const cacheKey = normalizeText(query);
+  const cached = geocodeCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
   }
-  if (geometry.type === "MultiPolygon") {
-    const first = geometry.coordinates?.[0]?.[0]?.[0];
-    return first ? [first[0], first[1]] : null;
+
+  await waitForGeocoderSlot();
+
+  const url = new URL("/search", `${geocoderApiBaseUrl}/`);
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("limit", "3");
+  url.searchParams.set("countrycodes", "us");
+
+  const timeout = withTimeout(signal, requestTimeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": geocoderUserAgent,
+      },
+      signal: timeout.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Geocoder request failed (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const results = Array.isArray(payload)
+      ? payload.flatMap((entry) => {
+          const lat = Number(entry?.lat);
+          const lng = Number(entry?.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+          return [{
+            lat,
+            lng,
+            displayName: String(entry?.display_name || query),
+          }];
+        })
+      : [];
+
+    geocodeCache.set(cacheKey, {
+      expiresAt: Date.now() + 1000 * 60 * 60 * 24,
+      value: results,
+    });
+
+    return results;
+  } finally {
+    timeout.cleanup();
   }
-  return null;
+}
+
+async function fetchPointParcelsByCoordinate(lat, lng, signal) {
+  return fetchJson("parcels/point", {
+    lat,
+    lon: lng,
+    radius: 20,
+    limit: 5,
+    return_geometry: true,
+    return_stacked: false,
+  }, signal);
 }
 
 async function handleSearch(requestUrl, response, signal) {
@@ -315,12 +415,25 @@ async function handleSearch(requestUrl, response, signal) {
     return;
   }
 
+  const merged = [];
+  const geocodedPoints = await geocodeAddress(query, signal).catch(() => []);
+
+  for (const geocodedPoint of geocodedPoints.slice(0, 2)) {
+    try {
+      const pointPayload = await fetchPointParcelsByCoordinate(geocodedPoint.lat, geocodedPoint.lng, signal);
+      merged.push(...normalizePointSearchResults(pointPayload));
+      if (merged.length) {
+        break;
+      }
+    } catch {
+      continue;
+    }
+  }
+
   const [typeaheadResult, addressResult] = await Promise.allSettled([
     fetchJson("parcels/typeahead", { query }, signal),
     fetchJson("parcels/address", { query, limit: 20 }, signal),
   ]);
-
-  const merged = [];
 
   if (typeaheadResult.status === "fulfilled") {
     merged.push(...normalizeTypeaheadResults(typeaheadResult.value));

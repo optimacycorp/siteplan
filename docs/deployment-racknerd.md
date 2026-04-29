@@ -111,6 +111,8 @@ PORT=8787
 REGRID_API_TOKEN=replace-with-your-regrid-token
 REGRID_API_BASE_URL=https://app.regrid.com/api/v2
 REGRID_REQUEST_TIMEOUT_MS=15000
+GEOCODER_API_BASE_URL=https://nominatim.openstreetmap.org
+GEOCODER_USER_AGENT=OptimacyQuickSite/0.1 (+https://siteplan.gomil.com)
 EOF
 ```
 
