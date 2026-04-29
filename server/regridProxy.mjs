@@ -128,6 +128,40 @@ function normalizeText(value) {
     .trim();
 }
 
+function offsetCoordinate(lat, lng, eastMeters, northMeters) {
+  const latRadians = (lat * Math.PI) / 180;
+  const metersPerDegreeLat = 111_320;
+  const metersPerDegreeLng = 111_320 * Math.cos(latRadians);
+
+  return {
+    lat: lat + northMeters / metersPerDegreeLat,
+    lng: lng + eastMeters / Math.max(metersPerDegreeLng, 1e-6),
+  };
+}
+
+function buildNearbyProbePoints(lat, lng) {
+  const points = [{ lat, lng }];
+  const distances = [8, 16, 32, 64];
+  const directions = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+  ];
+
+  for (const distance of distances) {
+    for (const [eastScale, northScale] of directions) {
+      points.push(offsetCoordinate(lat, lng, eastScale * distance, northScale * distance));
+    }
+  }
+
+  return points;
+}
+
 function tokenize(value) {
   return normalizeText(value).split(" ").filter(Boolean);
 }
@@ -530,22 +564,30 @@ async function geocodeAddress(query, signal) {
 }
 
 async function fetchPointParcelsByCoordinate(lat, lng, signal) {
+  const probePoints = buildNearbyProbePoints(lat, lng);
   const attempts = [
-    { lat, lon: lng, radius: 4, limit: 1, return_geometry: true },
-    { lat, lon: lng, radius: 25, limit: 3, return_geometry: true },
-    { lat, lon: lng, radius: 150, limit: 5, return_geometry: true },
-    { lat, lon: lng, radius: 500, limit: 8, return_geometry: true },
+    { radius: 4, limit: 1 },
+    { radius: 25, limit: 3 },
+    { radius: 150, limit: 5 },
   ];
 
-  for (const params of attempts) {
-    try {
-      const payload = await fetchJson("parcels/point", params, signal);
-      const features = payload?.parcels?.features;
-      if (Array.isArray(features) && features.length) {
-        return payload;
+  for (const point of probePoints) {
+    for (const attempt of attempts) {
+      try {
+        const payload = await fetchJson("parcels/point", {
+          lat: point.lat,
+          lon: point.lng,
+          radius: attempt.radius,
+          limit: attempt.limit,
+          return_geometry: true,
+        }, signal);
+        const features = payload?.parcels?.features;
+        if (Array.isArray(features) && features.length) {
+          return payload;
+        }
+      } catch {
+        // Continue probing nearby points.
       }
-    } catch {
-      // Try the next radius before giving up.
     }
   }
 
