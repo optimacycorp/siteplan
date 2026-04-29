@@ -530,14 +530,26 @@ async function geocodeAddress(query, signal) {
 }
 
 async function fetchPointParcelsByCoordinate(lat, lng, signal) {
-  return fetchJson("parcels/point", {
-    lat,
-    lon: lng,
-    radius: 150,
-    limit: 5,
-    return_geometry: true,
-    return_stacked: false,
-  }, signal);
+  const attempts = [
+    { lat, lon: lng, radius: 4, limit: 1, return_geometry: true },
+    { lat, lon: lng, radius: 25, limit: 3, return_geometry: true },
+    { lat, lon: lng, radius: 150, limit: 5, return_geometry: true },
+    { lat, lon: lng, radius: 500, limit: 8, return_geometry: true },
+  ];
+
+  for (const params of attempts) {
+    try {
+      const payload = await fetchJson("parcels/point", params, signal);
+      const features = payload?.parcels?.features;
+      if (Array.isArray(features) && features.length) {
+        return payload;
+      }
+    } catch {
+      // Try the next radius before giving up.
+    }
+  }
+
+  return { parcels: { features: [] } };
 }
 
 async function handleSearch(requestUrl, response, signal) {
@@ -636,13 +648,7 @@ async function handlePoint(requestUrl, response, signal) {
     return;
   }
 
-  const payload = await fetchJson("parcels/point", {
-    lat,
-    lon: lng,
-    radius,
-    limit: 1,
-    return_geometry: true,
-  }, signal);
+  const payload = await fetchPointParcelsByCoordinate(Number(lat), Number(lng), signal);
 
   const feature = payload?.parcels?.features?.[0] || null;
   sendJson(response, 200, { feature });
