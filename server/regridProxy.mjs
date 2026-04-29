@@ -11,6 +11,22 @@ if (!regridToken) {
   process.exit(1);
 }
 
+const stateAliases = new Map([
+  ["alabama", "al"], ["alaska", "ak"], ["arizona", "az"], ["arkansas", "ar"],
+  ["california", "ca"], ["colorado", "co"], ["connecticut", "ct"], ["delaware", "de"],
+  ["florida", "fl"], ["georgia", "ga"], ["hawaii", "hi"], ["idaho", "id"],
+  ["illinois", "il"], ["indiana", "in"], ["iowa", "ia"], ["kansas", "ks"],
+  ["kentucky", "ky"], ["louisiana", "la"], ["maine", "me"], ["maryland", "md"],
+  ["massachusetts", "ma"], ["michigan", "mi"], ["minnesota", "mn"], ["mississippi", "ms"],
+  ["missouri", "mo"], ["montana", "mt"], ["nebraska", "ne"], ["nevada", "nv"],
+  ["new hampshire", "nh"], ["new jersey", "nj"], ["new mexico", "nm"], ["new york", "ny"],
+  ["north carolina", "nc"], ["north dakota", "nd"], ["ohio", "oh"], ["oklahoma", "ok"],
+  ["oregon", "or"], ["pennsylvania", "pa"], ["rhode island", "ri"], ["south carolina", "sc"],
+  ["south dakota", "sd"], ["tennessee", "tn"], ["texas", "tx"], ["utah", "ut"],
+  ["vermont", "vt"], ["virginia", "va"], ["washington", "wa"], ["west virginia", "wv"],
+  ["wisconsin", "wi"], ["wyoming", "wy"], ["district of columbia", "dc"],
+]);
+
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
@@ -80,6 +96,139 @@ async function fetchJson(pathname, params, signal) {
   }
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenize(value) {
+  return normalizeText(value).split(" ").filter(Boolean);
+}
+
+function parseQueryParts(query) {
+  const segments = query.split(",").map((segment) => segment.trim()).filter(Boolean);
+  const street = segments[0] || query.trim();
+  const zipMatch = query.match(/\b\d{5}(?:-\d{4})?\b/);
+  const zip = zipMatch?.[0] || "";
+  const normalizedQuery = normalizeText(query);
+
+  let state = "";
+  for (const [name, abbreviation] of stateAliases.entries()) {
+    if (normalizedQuery.includes(name)) {
+      state = abbreviation;
+      break;
+    }
+  }
+
+  if (!state) {
+    const stateToken = tokenize(query).find((token) => token.length === 2 && [...stateAliases.values()].includes(token));
+    state = stateToken || "";
+  }
+
+  let city = "";
+  if (segments.length >= 2) {
+    const possibleCity = segments[segments.length >= 3 ? segments.length - 2 : 1];
+    if (possibleCity && !/\d/.test(possibleCity)) {
+      city = normalizeText(possibleCity);
+    }
+  }
+
+  const streetTokens = tokenize(street).filter((token) => token.length > 1);
+
+  return {
+    raw: query,
+    street,
+    streetNormalized: normalizeText(street),
+    streetTokens,
+    city,
+    state,
+    zip,
+  };
+}
+
+function isUnitAddress(address) {
+  return /\b(?:apt|unit|suite|ste|lot|#)\b/i.test(address);
+}
+
+function scoreResult(result, queryParts) {
+  const address = normalizeText(result.address);
+  const context = normalizeText(result.context);
+  const combined = `${address} ${context}`.trim();
+  let score = Number(result.score || 0);
+
+  if (queryParts.streetNormalized && address.includes(queryParts.streetNormalized)) {
+    score += 40;
+  }
+
+  const matchedStreetTokens = queryParts.streetTokens.filter((token) => combined.includes(token)).length;
+  score += matchedStreetTokens * 6;
+
+  if (queryParts.city && context.includes(queryParts.city)) {
+    score += 25;
+  } else if (queryParts.city) {
+    score -= 20;
+  }
+
+  if (queryParts.state) {
+    const statePattern = new RegExp(`\\b${queryParts.state}\\b`, "i");
+    if (statePattern.test(result.address) || statePattern.test(result.context)) {
+      score += 16;
+    } else {
+      score -= 14;
+    }
+  }
+
+  if (queryParts.zip) {
+    if (result.address.includes(queryParts.zip)) {
+      score += 30;
+    } else {
+      score -= 25;
+    }
+  }
+
+  if (isUnitAddress(result.address)) {
+    score -= 8;
+  }
+
+  return score;
+}
+
+function dedupeAndRankResults(results, query) {
+  const queryParts = parseQueryParts(query);
+  const rankedByUuid = new Map();
+
+  for (const result of results) {
+    const relevance = scoreResult(result, queryParts);
+    const candidate = { ...result, relevance };
+    const existing = rankedByUuid.get(candidate.llUuid);
+
+    if (!existing) {
+      rankedByUuid.set(candidate.llUuid, candidate);
+      continue;
+    }
+
+    if (
+      candidate.relevance > existing.relevance ||
+      (candidate.relevance === existing.relevance && candidate.address.length < existing.address.length)
+    ) {
+      rankedByUuid.set(candidate.llUuid, candidate);
+    }
+  }
+
+  return [...rankedByUuid.values()]
+    .sort((left, right) => {
+      if (right.relevance !== left.relevance) {
+        return right.relevance - left.relevance;
+      }
+      return left.address.length - right.address.length;
+    })
+    .slice(0, 20)
+    .map(({ relevance: _relevance, ...result }) => result);
+}
+
 function normalizeTypeaheadResults(payload) {
   const features = payload?.parcel_centroids?.features;
   if (!Array.isArray(features)) return [];
@@ -107,10 +256,13 @@ function normalizeAddressResults(payload) {
     const fields = properties?.fields || {};
     const llUuid = properties?.ll_uuid;
     if (!llUuid) return [];
+    const city = String(fields.city || fields.municipality || "");
+    const state = String(fields.state2 || "");
+    const context = [city, state].filter(Boolean).join(", ");
     return [{
       llUuid: String(llUuid),
       address: String(fields.address || properties.headline || llUuid),
-      context: String(properties.context?.headline || properties.context?.name || ""),
+      context,
       path: String(properties.path || ""),
       score: 0,
       coordinates: [Number(fields.lon || feature?.geometry?.coordinates?.[0] || 0), Number(fields.lat || feature?.geometry?.coordinates?.[1] || 0)],
@@ -163,17 +315,32 @@ async function handleSearch(requestUrl, response, signal) {
     return;
   }
 
-  try {
-    const typeaheadPayload = await fetchJson("parcels/typeahead", { query }, signal);
-    sendJson(response, 200, normalizeTypeaheadResults(typeaheadPayload));
-  } catch (error) {
-    try {
-      const addressPayload = await fetchJson("parcels/address", { query, limit: 10 }, signal);
-      sendJson(response, 200, normalizeAddressResults(addressPayload));
-    } catch {
-      throw error;
-    }
+  const [typeaheadResult, addressResult] = await Promise.allSettled([
+    fetchJson("parcels/typeahead", { query }, signal),
+    fetchJson("parcels/address", { query, limit: 20 }, signal),
+  ]);
+
+  const merged = [];
+
+  if (typeaheadResult.status === "fulfilled") {
+    merged.push(...normalizeTypeaheadResults(typeaheadResult.value));
   }
+
+  if (addressResult.status === "fulfilled") {
+    merged.push(...normalizeAddressResults(addressResult.value));
+  }
+
+  if (!merged.length) {
+    const reason =
+      typeaheadResult.status === "rejected"
+        ? typeaheadResult.reason
+        : addressResult.status === "rejected"
+          ? addressResult.reason
+          : new Error("No search results available");
+    throw reason;
+  }
+
+  sendJson(response, 200, dedupeAndRankResults(merged, query));
 }
 
 async function handleDetail(llUuid, response, signal) {
