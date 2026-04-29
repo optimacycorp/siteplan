@@ -5,6 +5,8 @@ const port = Number(process.env.PORT || 8787);
 const regridToken = process.env.REGRID_API_TOKEN || "";
 const regridApiBaseUrl = (process.env.REGRID_API_BASE_URL || "https://app.regrid.com/api/v2").replace(/\/+$/, "");
 const requestTimeoutMs = Number(process.env.REGRID_REQUEST_TIMEOUT_MS || 15000);
+const censusGeocoderApiBaseUrl = (process.env.CENSUS_GEOCODER_API_BASE_URL || "https://geocoding.geo.census.gov").replace(/\/+$/, "");
+const censusGeocoderBenchmark = process.env.CENSUS_GEOCODER_BENCHMARK || "Public_AR_Current";
 const geocoderApiBaseUrl = (process.env.GEOCODER_API_BASE_URL || "https://nominatim.openstreetmap.org").replace(/\/+$/, "");
 const geocoderUserAgent = process.env.GEOCODER_USER_AGENT || "OptimacyQuickSite/0.1 (+https://siteplan.gomil.com)";
 
@@ -30,6 +32,25 @@ const stateAliases = new Map([
   ["south dakota", "sd"], ["tennessee", "tn"], ["texas", "tx"], ["utah", "ut"],
   ["vermont", "vt"], ["virginia", "va"], ["washington", "wa"], ["west virginia", "wv"],
   ["wisconsin", "wi"], ["wyoming", "wy"], ["district of columbia", "dc"],
+]);
+
+const streetSuffixAliases = new Map([
+  [" road", " rd"],
+  [" rd", " road"],
+  [" street", " st"],
+  [" st", " street"],
+  [" avenue", " ave"],
+  [" ave", " avenue"],
+  [" boulevard", " blvd"],
+  [" blvd", " boulevard"],
+  [" drive", " dr"],
+  [" dr", " drive"],
+  [" lane", " ln"],
+  [" ln", " lane"],
+  [" court", " ct"],
+  [" ct", " court"],
+  [" place", " pl"],
+  [" pl", " place"],
 ]);
 
 function sendJson(response, statusCode, payload) {
@@ -150,6 +171,43 @@ function parseQueryParts(query) {
     state,
     zip,
   };
+}
+
+function expandStreetVariants(street) {
+  const variants = new Set([street.trim()]);
+  const normalized = normalizeText(street);
+
+  for (const [from, to] of streetSuffixAliases.entries()) {
+    if (normalized.endsWith(from.trim())) {
+      variants.add(normalized.replace(new RegExp(`${from}$`), to));
+    }
+  }
+
+  return [...variants].filter(Boolean);
+}
+
+function buildGeocodeQueries(query) {
+  const parts = parseQueryParts(query);
+  const variants = new Set([query.trim()]);
+  const streetVariants = expandStreetVariants(parts.street || query);
+  const cityLabel = parts.city ? parts.city.replace(/\b\w/g, (char) => char.toUpperCase()) : "";
+  const stateLabel = parts.state ? parts.state.toUpperCase() : "";
+  const zipLabel = parts.zip || "";
+
+  for (const street of streetVariants) {
+    variants.add(street);
+
+    if (cityLabel && stateLabel && zipLabel) {
+      variants.add(`${street}, ${cityLabel}, ${stateLabel} ${zipLabel}`);
+      variants.add(`${street}, ${cityLabel}, ${stateLabel}`);
+    }
+
+    if (cityLabel && stateLabel) {
+      variants.add(`${street}, ${cityLabel}, ${stateLabel}`);
+    }
+  }
+
+  return [...variants].filter(Boolean);
 }
 
 function isUnitAddress(address) {
@@ -342,13 +400,48 @@ async function waitForGeocoderSlot() {
   }
 }
 
-async function geocodeAddress(query, signal) {
-  const cacheKey = normalizeText(query);
-  const cached = geocodeCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.value;
-  }
+async function geocodeAddressWithCensus(query, signal) {
+  const url = new URL("/geocoder/locations/onelineaddress", `${censusGeocoderApiBaseUrl}/`);
+  url.searchParams.set("address", query);
+  url.searchParams.set("benchmark", censusGeocoderBenchmark);
+  url.searchParams.set("format", "json");
 
+  const timeout = withTimeout(signal, requestTimeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": geocoderUserAgent,
+      },
+      signal: timeout.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Census geocoder request failed (${response.status})`);
+    }
+
+    const payload = await response.json();
+    const matches = payload?.result?.addressMatches;
+    if (!Array.isArray(matches)) {
+      return [];
+    }
+
+    return matches.flatMap((match) => {
+      const lat = Number(match?.coordinates?.y);
+      const lng = Number(match?.coordinates?.x);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+      return [{
+        lat,
+        lng,
+        displayName: String(match?.matchedAddress || query),
+      }];
+    });
+  } finally {
+    timeout.cleanup();
+  }
+}
+
+async function geocodeAddressWithNominatim(query, signal) {
   await waitForGeocoderSlot();
 
   const url = new URL("/search", `${geocoderApiBaseUrl}/`);
@@ -373,7 +466,7 @@ async function geocodeAddress(query, signal) {
     }
 
     const payload = await response.json();
-    const results = Array.isArray(payload)
+    return Array.isArray(payload)
       ? payload.flatMap((entry) => {
           const lat = Number(entry?.lat);
           const lng = Number(entry?.lon);
@@ -385,23 +478,62 @@ async function geocodeAddress(query, signal) {
           }];
         })
       : [];
-
-    geocodeCache.set(cacheKey, {
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24,
-      value: results,
-    });
-
-    return results;
   } finally {
     timeout.cleanup();
   }
+}
+
+async function geocodeAddress(query, signal) {
+  const geocodeQueries = buildGeocodeQueries(query);
+  const cacheKey = geocodeQueries.map((value) => normalizeText(value)).join("|");
+  const cached = geocodeCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  const merged = [];
+  const seen = new Set();
+
+  for (const geocodeQuery of geocodeQueries) {
+    let results = [];
+
+    try {
+      results = await geocodeAddressWithCensus(geocodeQuery, signal);
+    } catch {
+      results = [];
+    }
+
+    if (!results.length) {
+      try {
+        results = await geocodeAddressWithNominatim(geocodeQuery, signal);
+      } catch {
+        results = [];
+      }
+    }
+
+    for (const result of results) {
+      const key = `${result.lat.toFixed(6)},${result.lng.toFixed(6)}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      merged.push({ ...result, query: geocodeQuery });
+    }
+  }
+
+  geocodeCache.set(cacheKey, {
+    expiresAt: Date.now() + 1000 * 60 * 60 * 24,
+    value: merged,
+  });
+
+  return merged;
 }
 
 async function fetchPointParcelsByCoordinate(lat, lng, signal) {
   return fetchJson("parcels/point", {
     lat,
     lon: lng,
-    radius: 20,
+    radius: 150,
     limit: 5,
     return_geometry: true,
     return_stacked: false,
@@ -418,11 +550,12 @@ async function handleSearch(requestUrl, response, signal) {
   const merged = [];
   const geocodedPoints = await geocodeAddress(query, signal).catch(() => []);
 
-  for (const geocodedPoint of geocodedPoints.slice(0, 2)) {
+  for (const geocodedPoint of geocodedPoints.slice(0, 3)) {
     try {
       const pointPayload = await fetchPointParcelsByCoordinate(geocodedPoint.lat, geocodedPoint.lng, signal);
-      merged.push(...normalizePointSearchResults(pointPayload));
-      if (merged.length) {
+      const pointResults = normalizePointSearchResults(pointPayload);
+      if (pointResults.length) {
+        merged.push(...pointResults);
         break;
       }
     } catch {
@@ -515,6 +648,21 @@ async function handlePoint(requestUrl, response, signal) {
   sendJson(response, 200, { feature });
 }
 
+async function handleGeocode(requestUrl, response, signal) {
+  const query = requestUrl.searchParams.get("query")?.trim() || "";
+  if (!query) {
+    sendJson(response, 400, { error: "Missing query" });
+    return;
+  }
+
+  const results = await geocodeAddress(query, signal);
+  sendJson(response, 200, {
+    query,
+    attemptedQueries: buildGeocodeQueries(query),
+    results,
+  });
+}
+
 const server = createServer(async (request, response) => {
   if (!request.url || !request.method) {
     sendText(response, 400, "Bad request");
@@ -556,6 +704,11 @@ const server = createServer(async (request, response) => {
 
     if (requestUrl.pathname === "/point") {
       await handlePoint(requestUrl, response, request.signal);
+      return;
+    }
+
+    if (requestUrl.pathname === "/geocode") {
+      await handleGeocode(requestUrl, response, request.signal);
       return;
     }
 
