@@ -1,0 +1,16 @@
+[Unit]
+Description=Siteplan Regrid Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/siteplan.gomil.com/app
+EnvironmentFile=/etc/siteplan-regrid-proxy.env
+ExecStart=/usr/bin/node /var/www/siteplan.gomil.com/app/server/regridProxy.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

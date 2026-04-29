@@ -39,3 +39,5 @@ RackNerd/Nginx deployment assets live in:
 - [docs/deployment-racknerd.md](C:\Users\Costandine_T\Downloads\siteplan\docs\deployment-racknerd.md)
 - [deploy/nginx/siteplan.gomil.com.conf](C:\Users\Costandine_T\Downloads\siteplan\deploy\nginx\siteplan.gomil.com.conf)
 - [deploy/certbot/issue-siteplan-cert.sh](C:\Users\Costandine_T\Downloads\siteplan\deploy\certbot\issue-siteplan-cert.sh)
+
+The parcel search flow also requires the local Regrid proxy service in [server/regridProxy.mjs](C:\Users\Costandine_T\Downloads\siteplan\server\regridProxy.mjs).
