@@ -21,6 +21,8 @@ export function ParcelSummary() {
           <dd>{parcel.zoning || "-"}</dd>
           <dt>County</dt>
           <dd>{parcel.county || "-"}</dd>
+          <dt>Source</dt>
+          <dd>{String(parcel.fields?.sourceKey ?? parcel.fields?.legacyProvider ?? "manual")}</dd>
           <dt>Flood zone</dt>
           <dd>{parcel.floodZone || "-"}</dd>
           <dt>Adjoining parcels</dt>

@@ -6,6 +6,7 @@ export type ParcelSearchResult = {
   score: number;
   coordinates: [number, number] | null;
   kind?: "parcel" | "geocode";
+  provider?: "local-postgis" | "county-arcgis" | "state-public-parcels" | "regrid" | "none";
 };
 
 export type ParcelDetail = {

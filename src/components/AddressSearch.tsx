@@ -48,7 +48,7 @@ export function AddressSearch() {
         const fallbackParcel = buildGeocodePlaceholder(result);
         setSelectedParcel(fallbackParcel);
         setNeighbors([]);
-        setSearchError("No direct parcel match from Regrid. The map is centered on the address, so click the parcel manually.");
+        setSearchError("No direct parcel match from the parcel provider. The map is centered on the address, so click the parcel manually.");
         return;
       }
 
