@@ -104,6 +104,26 @@ function toFeature(row) {
   };
 }
 
+function getFeatureRank(feature) {
+  const properties = feature?.properties ?? {};
+  const matchType = String(properties.matchType || "provider");
+  const acreage = Number(properties.acreage || 0);
+  const distanceMeters = Number(properties.distanceMeters || 0);
+  const normalizedArea = Number.isFinite(acreage) && acreage > 0 ? acreage : Number.POSITIVE_INFINITY;
+  const matchWeight = matchType === "contains" ? 0 : matchType === "near" ? 1 : 2;
+  return [matchWeight, normalizedArea, distanceMeters];
+}
+
+function compareFeatureRank(left, right) {
+  const leftRank = getFeatureRank(left);
+  const rightRank = getFeatureRank(right);
+  for (let index = 0; index < leftRank.length; index += 1) {
+    if (leftRank[index] < rightRank[index]) return -1;
+    if (leftRank[index] > rightRank[index]) return 1;
+  }
+  return 0;
+}
+
 export function createLocalPostgisProvider({
   supabaseUrl,
   serviceRoleKey,
@@ -164,7 +184,9 @@ export function createLocalPostgisProvider({
         p_tolerance_meters: pointToleranceMeters,
       }, signal);
 
-      const features = Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
+      const features = Array.isArray(rows)
+        ? rows.map(toFeature).filter(Boolean).sort(compareFeatureRank)
+        : [];
       if (!features.length) {
         return {
           status: "not_found",

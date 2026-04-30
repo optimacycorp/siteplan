@@ -323,9 +323,12 @@ function convertProviderFeaturesToSearchResults(features, provider) {
   return features.flatMap((feature) => {
     const properties = feature?.properties ?? {};
     const centroid = properties.centroid;
+    const parcelNumber = String(properties.parcelNumber || properties.apn || properties.scheduleNumber || "").trim();
+    const situsAddress = String(properties.situsAddress || properties.address || "").trim();
+    const fallbackLabel = parcelNumber ? `Parcel ${parcelNumber}` : String(properties.id || "");
     return [{
       llUuid: String(properties.id || ""),
-      address: String(properties.situsAddress || properties.address || properties.id || ""),
+      address: situsAddress || fallbackLabel,
       context: String(properties.context || properties.county || provider),
       path: String(properties.path || ""),
       score: 1000,
