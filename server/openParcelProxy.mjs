@@ -326,13 +326,25 @@ function convertProviderFeaturesToSearchResults(features, provider) {
     const parcelNumber = String(properties.parcelNumber || properties.apn || properties.scheduleNumber || "").trim();
     const situsAddress = String(properties.situsAddress || properties.address || "").trim();
     const fallbackLabel = parcelNumber ? `Parcel ${parcelNumber}` : String(properties.id || "");
+    const county = String(properties.county || "").trim();
+    const state = String(properties.state || "").trim();
+    const acreage = Number(properties.acreage || 0);
+    const matchType = String(properties.matchType || "provider");
     return [{
       llUuid: String(properties.id || ""),
+      headline: situsAddress || fallbackLabel,
       address: situsAddress || fallbackLabel,
-      context: String(properties.context || properties.county || provider),
+      context: [
+        county && state ? `${county}, ${state}` : String(properties.context || county || provider),
+        parcelNumber ? `APN ${parcelNumber}` : "",
+      ].filter(Boolean).join(" • "),
       path: String(properties.path || ""),
       score: Number(properties.searchScore || 1000),
       coordinates: Array.isArray(centroid) ? [centroid[0], centroid[1]] : null,
+      parcelNumber: parcelNumber || undefined,
+      acreage: Number.isFinite(acreage) && acreage > 0 ? acreage : undefined,
+      matchType: ["contains", "near", "provider"].includes(matchType) ? matchType : "provider",
+      sourceKey: String(properties.sourceKey || ""),
       kind: "parcel",
       provider,
     }];
@@ -342,6 +354,7 @@ function convertProviderFeaturesToSearchResults(features, provider) {
 function buildGeocodeSearchResult(entry) {
   return {
     llUuid: `geocode:${entry.lat.toFixed(6)},${entry.lng.toFixed(6)}`,
+    headline: "Use mapped address location",
     address: entry.displayName,
     context: "Geocoded address",
     path: "",
@@ -577,6 +590,7 @@ async function handleSearch(requestUrl, response, signal) {
         }));
 
       results.push(...convertProviderFeaturesToSearchResults(rankedCandidates, PARCEL_PROVIDERS.LOCAL_POSTGIS));
+      results.push(buildGeocodeSearchResult(scoredGeocodes[0].entry));
     } else {
       results.push(buildGeocodeSearchResult(scoredGeocodes[0].entry));
     }

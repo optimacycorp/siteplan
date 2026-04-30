@@ -91,6 +91,29 @@ export function AddressSearch() {
     };
   }
 
+  function describeResult(result: ParcelSearchResult) {
+    if (result.kind === "geocode") {
+      return "Use the mapped address location, then click the parcel manually if needed.";
+    }
+
+    const parts = [];
+    if (result.matchType === "contains") {
+      parts.push("Contains the matched point");
+    } else if (result.matchType === "near") {
+      parts.push("Near the matched point");
+    }
+
+    if (result.acreage && Number.isFinite(result.acreage)) {
+      parts.push(`${result.acreage.toFixed(2)} acres`);
+    }
+
+    if (result.parcelNumber) {
+      parts.push(`APN ${result.parcelNumber}`);
+    }
+
+    return parts.join(" • ");
+  }
+
   return (
     <section className="panel-section">
       <h2>1. Find property</h2>
@@ -131,11 +154,9 @@ export function AddressSearch() {
           disabled={selectedParcelLoading}
           type="button"
         >
-          <strong>{result.address || result.llUuid}</strong>
+          <strong>{result.headline || result.address || result.llUuid}</strong>
           <p className="muted">{result.context || result.path || "Parcel search result"}</p>
-          {result.kind === "geocode" ? (
-            <p className="muted">Geocoded location. Click to center map and select a parcel manually.</p>
-          ) : null}
+          {describeResult(result) ? <p className="muted">{describeResult(result)}</p> : null}
           <span className="result-meta">{result.llUuid}</span>
         </button>
       ))}

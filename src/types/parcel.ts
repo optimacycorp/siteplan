@@ -1,10 +1,15 @@
 export type ParcelSearchResult = {
   llUuid: string;
+  headline?: string;
   address: string;
   context: string;
   path: string;
   score: number;
   coordinates: [number, number] | null;
+  parcelNumber?: string;
+  acreage?: number;
+  matchType?: "contains" | "near" | "provider";
+  sourceKey?: string;
   kind?: "parcel" | "geocode";
   provider?: "local-postgis" | "county-arcgis" | "state-public-parcels" | "regrid" | "none";
 };
