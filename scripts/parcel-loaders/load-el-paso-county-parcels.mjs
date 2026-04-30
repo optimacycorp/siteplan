@@ -52,15 +52,60 @@ function parseArgs(argv) {
   return args;
 }
 
+function escapeSqlLiteral(value) {
+  return String(value || "").replace(/'/g, "''");
+}
+
+function buildParcelIdVariants(parcelId) {
+  const raw = String(parcelId || "").trim().toUpperCase();
+  const compact = raw.replace(/[^0-9A-Z]/g, "");
+  const variants = new Set([raw, compact].filter(Boolean));
+
+  if (/^\d{10}$/.test(compact)) {
+    variants.add(`${compact.slice(0, 5)}-${compact.slice(5, 7)}-${compact.slice(7)}`);
+    variants.add(`${compact.slice(0, 5)} ${compact.slice(5, 7)} ${compact.slice(7)}`);
+  }
+
+  if (/^\d{9}$/.test(compact)) {
+    variants.add(`${compact.slice(0, 3)}-${compact.slice(3, 6)}-${compact.slice(6)}`);
+    variants.add(`${compact.slice(0, 3)} ${compact.slice(3, 6)} ${compact.slice(6)}`);
+  }
+
+  return Array.from(variants);
+}
+
 function buildParcelIdWhere(config, parcelId) {
-  const normalized = String(parcelId || "").replace(/[^0-9A-Za-z]/g, "");
-  if (!normalized) return "";
+  const normalized = String(parcelId || "").replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+  const variants = buildParcelIdVariants(parcelId);
+  if (!normalized && !variants.length) return "";
 
-  const clauses = config.parcelNumberCandidates.map((fieldName) =>
-    `REPLACE(REPLACE(REPLACE(UPPER(${fieldName}), ' ', ''), '-', ''), '.', '') = '${normalized.toUpperCase()}'`,
-  );
+  const exactVariantClauses = [];
+  const normalizedClauses = [];
 
-  return clauses.join(" OR ");
+  for (const fieldName of config.parcelNumberCandidates) {
+    normalizedClauses.push(
+      `REPLACE(REPLACE(REPLACE(UPPER(${fieldName}), ' ', ''), '-', ''), '.', '') = '${escapeSqlLiteral(normalized)}'`,
+    );
+
+    for (const variant of variants) {
+      exactVariantClauses.push(`${fieldName} = '${escapeSqlLiteral(variant)}'`);
+      exactVariantClauses.push(`UPPER(${fieldName}) = '${escapeSqlLiteral(variant)}'`);
+    }
+  }
+
+  const hyperlinkClauses = [];
+  if (normalized) {
+    hyperlinkClauses.push(`HYPERLINK LIKE '%${escapeSqlLiteral(normalized)}%'`);
+  }
+  for (const variant of variants) {
+    hyperlinkClauses.push(`HYPERLINK LIKE '%${escapeSqlLiteral(variant)}%'`);
+  }
+
+  return [
+    ...normalizedClauses,
+    ...exactVariantClauses,
+    ...hyperlinkClauses,
+  ].join(" OR ");
 }
 
 async function ensureSourceRecord(config) {
