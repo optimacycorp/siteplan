@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 import { PARCEL_PROVIDERS } from "./parcelProviders/types.mjs";
 import { createRegridLegacyProvider, HttpError } from "./parcelProviders/regridLegacyProvider.mjs";
+import { createLocalPostgisProvider } from "./parcelProviders/localPostgisProvider.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const requestTimeoutMs = Number(process.env.REGRID_REQUEST_TIMEOUT_MS || 15000);
@@ -13,6 +14,9 @@ const geocoderUserAgent = process.env.GEOCODER_USER_AGENT || "OptimacyQuickSite/
 const defaultState = process.env.OPEN_PARCEL_DEFAULT_STATE || "CO";
 const defaultCounty = process.env.OPEN_PARCEL_DEFAULT_COUNTY || "El Paso";
 const enableRegridFallback = /^true$/i.test(process.env.OPEN_PARCEL_ENABLE_REGRID_FALLBACK || "false");
+const supabasePointToleranceMeters = Number(process.env.OPEN_PARCEL_POINT_TOLERANCE_METERS || 25);
+const supabaseNeighborRadiusMeters = Number(process.env.OPEN_PARCEL_NEIGHBOR_RADIUS_METERS || 150);
+const supabaseNeighborLimit = Number(process.env.OPEN_PARCEL_NEIGHBOR_LIMIT || 8);
 
 const geocodeCache = new Map();
 const searchCache = new Map();
@@ -23,6 +27,15 @@ const regridLegacyProvider = createRegridLegacyProvider({
   apiBaseUrl: process.env.REGRID_API_BASE_URL || "https://app.regrid.com/api/v2",
   timeoutMs: requestTimeoutMs,
   rateLimitCooldownMs: Number(process.env.REGRID_RATE_LIMIT_COOLDOWN_MS || 1000 * 60 * 2),
+});
+
+const localPostgisProvider = createLocalPostgisProvider({
+  supabaseUrl: process.env.SUPABASE_URL || "",
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  timeoutMs: requestTimeoutMs,
+  pointToleranceMeters: supabasePointToleranceMeters,
+  neighborRadiusMeters: supabaseNeighborRadiusMeters,
+  neighborLimit: supabaseNeighborLimit,
 });
 
 const stateAliases = new Map([
@@ -337,6 +350,13 @@ function buildGeocodeSearchResult(entry) {
 }
 
 async function lookupParcel(input, signal) {
+  if (localPostgisProvider.enabled) {
+    const localLookup = await localPostgisProvider.lookupByPoint(input, signal);
+    if (localLookup.status === "found" && localLookup.features.length) {
+      return localLookup;
+    }
+  }
+
   if (enableRegridFallback && regridLegacyProvider) {
     return regridLegacyProvider.lookupByPoint(input, signal);
   }
@@ -444,6 +464,14 @@ async function handleDetail(response, signal, llUuid) {
     return;
   }
 
+  if (localPostgisProvider.enabled) {
+    const feature = await localPostgisProvider.detailById(llUuid, signal);
+    if (feature) {
+      sendJson(response, 200, { feature, detail: feature });
+      return;
+    }
+  }
+
   if (enableRegridFallback && regridLegacyProvider) {
     const feature = await regridLegacyProvider.detailByUuid(llUuid, signal);
     sendJson(response, 200, { feature, detail: feature });
@@ -453,7 +481,26 @@ async function handleDetail(response, signal, llUuid) {
   sendJson(response, 200, { feature: null, detail: null });
 }
 
-async function handleNeighbors(response) {
+async function handleNeighbors(requestUrl, response, signal) {
+  const lat = Number(requestUrl.searchParams.get("lat"));
+  const lng = Number(requestUrl.searchParams.get("lng"));
+  const excludeId = requestUrl.searchParams.get("excludeLlUuid")?.trim() || "";
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    sendJson(response, 400, { error: "Missing lat/lng" });
+    return;
+  }
+
+  if (localPostgisProvider.enabled) {
+    const features = await localPostgisProvider.neighborsByPoint({
+      lat,
+      lng,
+      excludeId,
+    }, signal);
+    sendJson(response, 200, { features });
+    return;
+  }
+
   sendJson(response, 200, { features: [] });
 }
 
@@ -519,7 +566,7 @@ export function startOpenParcelProxy() {
       }
 
       if (requestUrl.pathname === "/neighbors") {
-        await handleNeighbors(response);
+        await handleNeighbors(requestUrl, response, request.signal);
         return;
       }
 

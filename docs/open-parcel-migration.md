@@ -18,13 +18,28 @@ Planned next slices:
 3. On-demand cache insert on county lookup success.
 4. Remove the default Regrid fallback path.
 
+Current second slice:
+
+- `server/parcelProviders/localPostgisProvider.mjs` reads parcel hits from Supabase RPC functions.
+- `supabase/migrations/20260430_open_parcel_provider_functions.sql` adds parcel detail and neighbor RPC helpers.
+- `scripts/parcel-loaders/load-el-paso-county-parcels.mjs` provides the first county loader scaffold with a safe dry-run mode.
+
 Environment variables:
 
 ```bash
 OPEN_PARCEL_DEFAULT_STATE=CO
 OPEN_PARCEL_DEFAULT_COUNTY=El Paso
 OPEN_PARCEL_ENABLE_REGRID_FALLBACK=false
+OPEN_PARCEL_POINT_TOLERANCE_METERS=25
+OPEN_PARCEL_NEIGHBOR_RADIUS_METERS=150
+OPEN_PARCEL_NEIGHBOR_LIMIT=8
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 REGRID_API_TOKEN=
+```
+
+Dry-run loader command:
+
+```bash
+node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --dry-run --limit 25
 ```

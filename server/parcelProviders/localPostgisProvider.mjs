@@ -1,0 +1,167 @@
+import { PARCEL_PROVIDERS } from "./types.mjs";
+import { HttpError } from "./regridLegacyProvider.mjs";
+
+function withTimeout(signal, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  if (signal) {
+    signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timeout),
+  };
+}
+
+function toObject(value) {
+  if (!value) return null;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value : null;
+}
+
+function toFeature(row) {
+  const properties = toObject(row?.properties) ?? {};
+  const geometry = toObject(row?.geojson);
+  const centroid = toObject(row?.centroid);
+
+  const centroidCoordinates = Array.isArray(centroid?.coordinates)
+    ? centroid.coordinates
+    : null;
+
+  return {
+    type: "Feature",
+    geometry: geometry && typeof geometry.type === "string" ? geometry : null,
+    properties: {
+      id: String(row?.id || ""),
+      sourceKey: String(row?.source_key || ""),
+      externalId: row?.external_id ? String(row.external_id) : "",
+      parcelNumber: row?.parcel_number ? String(row.parcel_number) : "",
+      apn: row?.apn ? String(row.apn) : "",
+      scheduleNumber: row?.schedule_number ? String(row.schedule_number) : "",
+      situsAddress: row?.situs_address ? String(row.situs_address) : "",
+      ownerName: row?.owner_name ? String(row.owner_name) : "",
+      legalDescription: row?.legal_description ? String(row.legal_description) : "",
+      zoning: row?.zoning ? String(row.zoning) : String(properties.zoning || ""),
+      acreage: Number(row?.acreage || 0),
+      county: row?.county ? String(row.county) : String(properties.county || ""),
+      state: row?.state ? String(row.state) : String(properties.state || ""),
+      context: [
+        row?.county ? String(row.county) : String(properties.county || ""),
+        row?.state ? String(row.state) : String(properties.state || ""),
+      ].filter(Boolean).join(", "),
+      centroid: centroidCoordinates && centroidCoordinates.length >= 2
+        ? [Number(centroidCoordinates[0]), Number(centroidCoordinates[1])]
+        : null,
+      matchType: row?.match_type ? String(row.match_type) : "provider",
+      distanceMeters: Number.isFinite(Number(row?.distance_meters))
+        ? Number(row.distance_meters)
+        : null,
+      fields: properties,
+    },
+  };
+}
+
+export function createLocalPostgisProvider({
+  supabaseUrl,
+  serviceRoleKey,
+  timeoutMs = 15000,
+  pointToleranceMeters = 25,
+  neighborRadiusMeters = 150,
+  neighborLimit = 8,
+} = {}) {
+  const baseUrl = String(supabaseUrl || "").replace(/\/+$/, "");
+  const enabled = Boolean(baseUrl && serviceRoleKey);
+
+  async function postRpc(functionName, payload, signal) {
+    if (!enabled) {
+      throw new HttpError(500, "Supabase local parcel provider is not configured.");
+    }
+
+    const timeout = withTimeout(signal, timeoutMs);
+    try {
+      const response = await fetch(`${baseUrl}/rest/v1/rpc/${functionName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify(payload),
+        signal: timeout.signal,
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new HttpError(response.status, `Supabase RPC ${functionName} failed (${response.status})`, {
+          detail: text || undefined,
+        });
+      }
+
+      return response.json();
+    } finally {
+      timeout.cleanup();
+    }
+  }
+
+  return {
+    enabled,
+    async lookupByPoint(input, signal) {
+      if (!enabled) {
+        return {
+          status: "not_found",
+          provider: PARCEL_PROVIDERS.NONE,
+          features: [],
+        };
+      }
+
+      const rows = await postRpc("lookup_parcel_by_point", {
+        p_lng: input.lng,
+        p_lat: input.lat,
+        p_tolerance_meters: pointToleranceMeters,
+      }, signal);
+
+      const features = Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
+      if (!features.length) {
+        return {
+          status: "not_found",
+          provider: PARCEL_PROVIDERS.NONE,
+          features: [],
+        };
+      }
+
+      return {
+        status: "found",
+        provider: PARCEL_PROVIDERS.LOCAL_POSTGIS,
+        features,
+        message: "Parcel matched from local parcel cache.",
+      };
+    },
+
+    async detailById(id, signal) {
+      if (!enabled || !id) return null;
+      const rows = await postRpc("get_open_parcel_detail", { p_id: id }, signal);
+      return Array.isArray(rows) && rows[0] ? toFeature(rows[0]) : null;
+    },
+
+    async neighborsByPoint(input, signal) {
+      if (!enabled) return [];
+      const rows = await postRpc("lookup_open_parcel_neighbors", {
+        p_lng: input.lng,
+        p_lat: input.lat,
+        p_exclude_id: input.excludeId || null,
+        p_radius_meters: neighborRadiusMeters,
+        p_limit: neighborLimit,
+      }, signal);
+      return Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
+    },
+  };
+}

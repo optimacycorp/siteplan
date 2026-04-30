@@ -107,8 +107,13 @@ export async function fetchParcelNeighbors(_input?: {
   lng: number;
   excludeLlUuid?: string | null;
 }): Promise<ParcelNeighbor[]> {
+  const input = _input;
   const response = await fetchJson<{ features?: OpenParcelFeature[] }>(
-    buildUrl("neighbors", {}),
+    buildUrl("neighbors", {
+      lat: input?.lat,
+      lng: input?.lng,
+      excludeLlUuid: input?.excludeLlUuid ?? undefined,
+    }),
   );
 
   return (response.features ?? []).flatMap((feature) => {
