@@ -331,7 +331,7 @@ function convertProviderFeaturesToSearchResults(features, provider) {
       address: situsAddress || fallbackLabel,
       context: String(properties.context || properties.county || provider),
       path: String(properties.path || ""),
-      score: 1000,
+      score: Number(properties.searchScore || 1000),
       coordinates: Array.isArray(centroid) ? [centroid[0], centroid[1]] : null,
       kind: "parcel",
       provider,
@@ -371,6 +371,65 @@ async function lookupParcel(input, signal) {
     center: { lat: input.lat, lng: input.lng },
     message: "Address located, but no parcel polygon was found. Zoomed to the area for manual selection.",
   };
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function distanceMeters(fromLat, fromLng, toLat, toLng) {
+  const earthRadiusMeters = 6371000;
+  const dLat = toRadians(toLat - fromLat);
+  const dLng = toRadians(toLng - fromLng);
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function scoreSearchFeature(feature, geocodedEntry) {
+  const properties = feature?.properties ?? {};
+  const centroid = Array.isArray(properties.centroid) ? properties.centroid : null;
+  const acreage = Number(properties.acreage || 0);
+  const matchType = String(properties.matchType || "provider");
+  const centroidDistance = centroid
+    ? distanceMeters(geocodedEntry.lat, geocodedEntry.lng, Number(centroid[1]), Number(centroid[0]))
+    : 5000;
+  const acreagePenalty = Number.isFinite(acreage) && acreage > 0
+    ? Math.min(1500, acreage * 2)
+    : 250;
+  const matchBonus = matchType === "contains" ? -125 : matchType === "near" ? 0 : 125;
+
+  return centroidDistance + acreagePenalty + matchBonus;
+}
+
+function dedupeFeatures(features) {
+  const seen = new Set();
+  const deduped = [];
+  for (const feature of features) {
+    const id = String(feature?.properties?.id || "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    deduped.push(feature);
+  }
+  return deduped;
+}
+
+async function searchLocalCandidates(input, signal) {
+  if (!localPostgisProvider.enabled) return [];
+
+  const lookup = await localPostgisProvider.lookupByPoint(input, signal);
+  const neighbors = await localPostgisProvider.neighborsByPoint({
+    lat: input.lat,
+    lng: input.lng,
+  }, signal);
+
+  return dedupeFeatures([
+    ...(lookup.features || []),
+    ...neighbors,
+  ]);
 }
 
 async function handleGeocode(requestUrl, response, signal) {
@@ -426,7 +485,7 @@ async function handleSearch(requestUrl, response, signal) {
   const results = [];
 
   if (geocoded[0]) {
-    const lookup = await lookupParcel({
+    const localCandidates = await searchLocalCandidates({
       lat: geocoded[0].lat,
       lng: geocoded[0].lng,
       query,
@@ -434,10 +493,33 @@ async function handleSearch(requestUrl, response, signal) {
       county: defaultCounty,
     }, signal);
 
-    if (lookup.status === "found" && lookup.features.length) {
-      results.push(...convertProviderFeaturesToSearchResults(lookup.features, lookup.provider));
+    if (localCandidates.length) {
+      const rankedCandidates = localCandidates
+        .map((feature) => ({
+          ...feature,
+          properties: {
+            ...(feature.properties ?? {}),
+            searchScore: Math.round(100000 - scoreSearchFeature(feature, geocoded[0])),
+          },
+        }))
+        .sort((left, right) => Number(right?.properties?.searchScore || 0) - Number(left?.properties?.searchScore || 0))
+        .slice(0, 5);
+
+      results.push(...convertProviderFeaturesToSearchResults(rankedCandidates, PARCEL_PROVIDERS.LOCAL_POSTGIS));
     } else {
-      results.push(buildGeocodeSearchResult(geocoded[0]));
+      const lookup = await lookupParcel({
+        lat: geocoded[0].lat,
+        lng: geocoded[0].lng,
+        query,
+        state: defaultState,
+        county: defaultCounty,
+      }, signal);
+
+      if (lookup.status === "found" && lookup.features.length) {
+        results.push(...convertProviderFeaturesToSearchResults(lookup.features, lookup.provider));
+      } else {
+        results.push(buildGeocodeSearchResult(geocoded[0]));
+      }
     }
   } else if (enableRegridFallback && regridLegacyProvider) {
     const fallback = await regridLegacyProvider.searchByText(query, signal);
