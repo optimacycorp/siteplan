@@ -25,6 +25,8 @@ function parseArgs(argv) {
     bbox: null,
     changedSince: "",
     parcelId: "",
+    around: null,
+    radiusMeters: 120,
     pageSize: EL_PASO_COUNTY_PARCELS.pageSize,
     maxPages: 50,
   };
@@ -37,6 +39,12 @@ function parseArgs(argv) {
     if (arg === "--page-size") args.pageSize = Number(argv[index + 1] || args.pageSize);
     if (arg === "--max-pages") args.maxPages = Number(argv[index + 1] || args.maxPages);
     if (arg === "--parcel-id") args.parcelId = String(argv[index + 1] || "").trim();
+    if (arg === "--around") {
+      args.around = String(argv[index + 1] || "")
+        .split(",")
+        .map((value) => Number(value.trim()));
+    }
+    if (arg === "--radius-meters") args.radiusMeters = Number(argv[index + 1] || args.radiusMeters);
     if (arg === "--bbox") {
       args.bbox = String(argv[index + 1] || "")
         .split(",")
@@ -50,6 +58,19 @@ function parseArgs(argv) {
   }
 
   return args;
+}
+
+function bboxFromPoint(lat, lng, radiusMeters) {
+  const safeRadius = Math.max(25, Number(radiusMeters || 0));
+  const latDelta = safeRadius / 111320;
+  const cosLat = Math.cos((lat * Math.PI) / 180);
+  const lngDelta = safeRadius / (111320 * Math.max(0.2, cosLat));
+  return [
+    Number((lng - lngDelta).toFixed(6)),
+    Number((lat - latDelta).toFixed(6)),
+    Number((lng + lngDelta).toFixed(6)),
+    Number((lat + latDelta).toFixed(6)),
+  ];
 }
 
 function escapeSqlLiteral(value) {
@@ -179,6 +200,11 @@ async function updateImportRun({ supabaseUrl, serviceRoleKey, id, status, fetche
 }
 
 async function loadFeatures(config, args) {
+  const effectiveBbox = Array.isArray(args.bbox) && args.bbox.length === 4
+    ? args.bbox
+    : Array.isArray(args.around) && args.around.length === 2
+      ? bboxFromPoint(args.around[0], args.around[1], args.radiusMeters)
+      : null;
   const features = [];
   let offset = 0;
   let pageCount = 0;
@@ -194,7 +220,7 @@ async function loadFeatures(config, args) {
     const page = await queryArcgisLayer(config, {
       limit: pageLimit,
       offset,
-      bbox: Array.isArray(args.bbox) && args.bbox.length === 4 ? args.bbox : null,
+      bbox: effectiveBbox,
       changedSince: args.changedSince,
       where: args.parcelId ? buildParcelIdWhere(config, args.parcelId) : "",
     });
@@ -259,6 +285,8 @@ async function main() {
     mode: args.bbox ? "on_demand" : "manual",
     metadata: {
       bbox: args.bbox,
+      around: args.around,
+      radiusMeters: args.radiusMeters,
       changedSince: args.changedSince || null,
       requestedLimit: Number.isFinite(args.limit) ? args.limit : null,
       pageSize: args.pageSize,
