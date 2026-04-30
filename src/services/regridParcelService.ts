@@ -1,5 +1,6 @@
 export {
   fetchParcelAtPoint,
+  fetchParcelCandidatesAtPoint,
   fetchParcelByUuid,
   fetchParcelNeighbors,
   searchParcels,

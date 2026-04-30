@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import maplibregl, { LngLatBounds } from "maplibre-gl";
-import { fetchParcelAtPoint, fetchParcelNeighbors } from "../services/regridParcelService";
+import {
+  fetchParcelCandidatesAtPoint,
+  fetchParcelNeighbors,
+} from "../services/regridParcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
 import { getBasemapDefinition } from "./basemapRegistry";
@@ -85,12 +88,16 @@ export function QuickMapCanvas() {
         void (async () => {
           setSelectedParcelLoading(true);
           try {
-            const detail = await fetchParcelAtPoint({
+            const clickPoint = {
               lng: event.lngLat.lng,
               lat: event.lngLat.lat,
-            });
+            };
+            const candidates = await fetchParcelCandidatesAtPoint(clickPoint);
+            const detail = candidates[0] ?? null;
             if (!detail) {
-              setSearchError("No parcel found at that clicked location. Try clicking inside the parcel boundary.");
+              setSearchError(
+                `No parcel found at that clicked location (${clickPoint.lat.toFixed(6)}, ${clickPoint.lng.toFixed(6)}). Try clicking inside the parcel boundary.`,
+              );
               return;
             }
 

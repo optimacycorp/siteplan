@@ -105,6 +105,67 @@ export async function fetchParcelAtPoint(input: {
   return mapFeatureToDetail(response.feature);
 }
 
+function distanceMeters(fromLat: number, fromLng: number, toLat: number, toLng: number) {
+  const earthRadiusMeters = 6371000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRadians(toLat - fromLat);
+  const dLng = toRadians(toLng - fromLng);
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function scoreParcelCandidate(detail: ParcelDetail, point: { lat: number; lng: number }) {
+  const centroid = detail.centroid;
+  const distance = centroid
+    ? distanceMeters(point.lat, point.lng, centroid[1], centroid[0])
+    : 250;
+  const acreage = Number(detail.areaAcres || 0);
+  const acreagePenalty = Number.isFinite(acreage) && acreage > 0
+    ? Math.min(1200, acreage * 3)
+    : 150;
+  const addressBonus = detail.address ? -40 : 0;
+  return distance + acreagePenalty + addressBonus;
+}
+
+function dedupeParcelDetails(details: ParcelDetail[]) {
+  const deduped = new Map<string, ParcelDetail>();
+  for (const detail of details) {
+    if (!detail.llUuid) continue;
+    if (!deduped.has(detail.llUuid)) {
+      deduped.set(detail.llUuid, detail);
+    }
+  }
+  return [...deduped.values()];
+}
+
+export async function fetchParcelCandidatesAtPoint(input: {
+  lat: number;
+  lng: number;
+}): Promise<ParcelDetail[]> {
+  const [pointResponse, neighborsResponse] = await Promise.all([
+    fetchJson<{ feature: OpenParcelFeature | null }>(
+      buildUrl("point", { lat: input.lat, lng: input.lng }),
+    ),
+    fetchJson<{ features?: OpenParcelFeature[] }>(
+      buildUrl("neighbors", { lat: input.lat, lng: input.lng }),
+    ),
+  ]);
+
+  const pointDetail = mapFeatureToDetail(pointResponse.feature);
+  const neighborDetails = (neighborsResponse.features ?? [])
+    .map((feature) => mapFeatureToDetail(feature))
+    .filter((detail): detail is ParcelDetail => Boolean(detail));
+
+  return dedupeParcelDetails([
+    ...(pointDetail ? [pointDetail] : []),
+    ...neighborDetails,
+  ]).sort((left, right) => scoreParcelCandidate(left, input) - scoreParcelCandidate(right, input));
+}
+
 export async function fetchParcelNeighbors(_input?: {
   lat: number;
   lng: number;
