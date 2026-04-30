@@ -27,6 +27,41 @@ function toObject(value) {
   return typeof value === "object" ? value : null;
 }
 
+function computeCentroidFromGeometry(geometry) {
+  if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon")) {
+    return null;
+  }
+
+  const polygon = geometry.type === "Polygon"
+    ? geometry.coordinates
+    : geometry.coordinates[0];
+  const ring = Array.isArray(polygon?.[0]) ? polygon[0] : [];
+  if (!ring.length) return null;
+
+  let minLng = Number.POSITIVE_INFINITY;
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLng = Number.NEGATIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+
+  for (const coordinate of ring) {
+    const [lng, lat] = coordinate;
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+    minLng = Math.min(minLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLng = Math.max(maxLng, lng);
+    maxLat = Math.max(maxLat, lat);
+  }
+
+  if (![minLng, minLat, maxLng, maxLat].every(Number.isFinite)) {
+    return null;
+  }
+
+  return [
+    Number(((minLng + maxLng) / 2).toFixed(9)),
+    Number(((minLat + maxLat) / 2).toFixed(9)),
+  ];
+}
+
 function toFeature(row) {
   const properties = toObject(row?.properties) ?? {};
   const geometry = toObject(row?.geojson);
@@ -34,7 +69,7 @@ function toFeature(row) {
 
   const centroidCoordinates = Array.isArray(centroid?.coordinates)
     ? centroid.coordinates
-    : null;
+    : computeCentroidFromGeometry(geometry);
 
   return {
     type: "Feature",

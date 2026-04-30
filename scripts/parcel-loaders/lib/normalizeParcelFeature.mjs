@@ -51,16 +51,26 @@ export function normalizeParcelFeature(feature, config, fieldMapping = null) {
       ? shapeAreaSqft / 43560
       : 0;
 
+  const cleanedParcelNumber = pickValue(properties, mapping.parcelNumber);
+  const cleanedAddress = pickValue(properties, mapping.situsAddress);
+  const cleanedOwner = pickValue(properties, mapping.ownerName);
+  const cleanedLegal = pickValue(properties, mapping.legalDescription);
+
   return {
     source_key: config.sourceKey,
     external_id: pickValue(properties, mapping.externalId),
-    parcel_number: pickValue(properties, mapping.parcelNumber),
-    situs_address: pickValue(properties, mapping.situsAddress),
-    owner_name: pickValue(properties, mapping.ownerName),
-    legal_description: pickValue(properties, mapping.legalDescription),
+    parcel_number: cleanedParcelNumber,
+    situs_address: cleanedAddress,
+    owner_name: cleanedOwner,
+    legal_description: cleanedLegal,
     acreage: derivedAcreage,
     geometry,
-    properties,
+    properties: {
+      ...properties,
+      PARCEL: cleanedParcelNumber || properties.PARCEL || "",
+      county: String(properties.county || "El Paso"),
+      state: String(properties.state || "CO"),
+    },
     fieldMapping: mapping,
   };
 }
