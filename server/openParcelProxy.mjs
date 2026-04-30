@@ -405,6 +405,31 @@ function scoreSearchFeature(feature, geocodedEntry) {
   return centroidDistance + acreagePenalty + matchBonus;
 }
 
+function scoreGeocodedEntry(entry, query) {
+  const normalizedQuery = normalizeText(query);
+  const normalizedDisplay = normalizeText(entry?.displayName || "");
+  let penalty = 0;
+
+  const queryZipMatch = query.match(/\b\d{5}(?:-\d{4})?\b/);
+  const displayZipMatch = String(entry?.displayName || "").match(/\b\d{5}(?:-\d{4})?\b/);
+  const queryZip = queryZipMatch?.[0] || "";
+  const displayZip = displayZipMatch?.[0] || "";
+
+  if (queryZip && displayZip && queryZip !== displayZip) {
+    penalty += 2500;
+  }
+
+  if (normalizedQuery.includes("colorado springs") && !normalizedDisplay.includes("colorado springs")) {
+    penalty += 3500;
+  }
+
+  if (normalizedQuery.includes("rampart range") && !normalizedDisplay.includes("rampart range")) {
+    penalty += 3000;
+  }
+
+  return penalty;
+}
+
 function dedupeFeatures(features) {
   const seen = new Set();
   const deduped = [];
@@ -485,41 +510,56 @@ async function handleSearch(requestUrl, response, signal) {
   const results = [];
 
   if (geocoded[0]) {
-    const localCandidates = await searchLocalCandidates({
-      lat: geocoded[0].lat,
-      lng: geocoded[0].lng,
-      query,
-      state: defaultState,
-      county: defaultCounty,
-    }, signal);
+    const scoredGeocodes = geocoded
+      .map((entry) => ({
+        entry,
+        score: scoreGeocodedEntry(entry, query),
+      }))
+      .sort((left, right) => left.score - right.score)
+      .slice(0, 4);
 
-    if (localCandidates.length) {
-      const rankedCandidates = localCandidates
-        .map((feature) => ({
-          ...feature,
-          properties: {
-            ...(feature.properties ?? {}),
-            searchScore: Math.round(100000 - scoreSearchFeature(feature, geocoded[0])),
-          },
-        }))
-        .sort((left, right) => Number(right?.properties?.searchScore || 0) - Number(left?.properties?.searchScore || 0))
-        .slice(0, 5);
-
-      results.push(...convertProviderFeaturesToSearchResults(rankedCandidates, PARCEL_PROVIDERS.LOCAL_POSTGIS));
-    } else {
-      const lookup = await lookupParcel({
-        lat: geocoded[0].lat,
-        lng: geocoded[0].lng,
+    const aggregatedCandidates = [];
+    for (const { entry } of scoredGeocodes) {
+      const localCandidates = await searchLocalCandidates({
+        lat: entry.lat,
+        lng: entry.lng,
         query,
         state: defaultState,
         county: defaultCounty,
       }, signal);
 
-      if (lookup.status === "found" && lookup.features.length) {
-        results.push(...convertProviderFeaturesToSearchResults(lookup.features, lookup.provider));
-      } else {
-        results.push(buildGeocodeSearchResult(geocoded[0]));
+      aggregatedCandidates.push(...localCandidates.map((feature) => ({
+        feature,
+        geocodedEntry: entry,
+      })));
+    }
+
+    const dedupedById = new Map();
+    for (const candidate of aggregatedCandidates) {
+      const id = String(candidate.feature?.properties?.id || "");
+      if (!id) continue;
+      const searchScore = scoreSearchFeature(candidate.feature, candidate.geocodedEntry) + scoreGeocodedEntry(candidate.geocodedEntry, query);
+      const current = dedupedById.get(id);
+      if (!current || searchScore < current.searchScore) {
+        dedupedById.set(id, { ...candidate, searchScore });
       }
+    }
+
+    if (dedupedById.size > 0) {
+      const rankedCandidates = [...dedupedById.values()]
+        .sort((left, right) => left.searchScore - right.searchScore)
+        .slice(0, 5)
+        .map((candidate) => ({
+          ...candidate.feature,
+          properties: {
+            ...(candidate.feature.properties ?? {}),
+            searchScore: Math.round(100000 - candidate.searchScore),
+          },
+        }));
+
+      results.push(...convertProviderFeaturesToSearchResults(rankedCandidates, PARCEL_PROVIDERS.LOCAL_POSTGIS));
+    } else {
+      results.push(buildGeocodeSearchResult(scoredGeocodes[0].entry));
     }
   } else if (enableRegridFallback && regridLegacyProvider) {
     const fallback = await regridLegacyProvider.searchByText(query, signal);
