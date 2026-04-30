@@ -78,6 +78,7 @@ export function AddressSearch() {
       headline: result.address || "Geocoded address",
       address: result.address || "Geocoded address",
       apn: "",
+      ownerName: "",
       zoning: "",
       floodZone: "",
       areaAcres: 0,
@@ -85,6 +86,8 @@ export function AddressSearch() {
       county: "",
       state: "",
       path: result.path,
+      sourceKey: "",
+      sourceUrl: "",
       geometry: null,
       centroid: result.coordinates ? [lng, lat] : null,
       fields: {},
@@ -157,7 +160,9 @@ export function AddressSearch() {
           <strong>{result.headline || result.address || result.llUuid}</strong>
           <p className="muted">{result.context || result.path || "Parcel search result"}</p>
           {describeResult(result) ? <p className="muted">{describeResult(result)}</p> : null}
-          <span className="result-meta">{result.llUuid}</span>
+          <span className="result-meta">
+            {result.sourceKey || result.provider || "parcel-provider"}
+          </span>
         </button>
       ))}
       {selectedParcelLoading ? (

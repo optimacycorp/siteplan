@@ -19,6 +19,7 @@ export type ParcelDetail = {
   headline: string;
   address: string;
   apn: string;
+  ownerName: string;
   zoning: string;
   floodZone: string;
   areaAcres: number;
@@ -26,6 +27,8 @@ export type ParcelDetail = {
   county: string;
   state: string;
   path: string;
+  sourceKey?: string;
+  sourceUrl?: string;
   geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon | null;
   centroid: [number, number] | null;
   fields: Record<string, unknown>;
