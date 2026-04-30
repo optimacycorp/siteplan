@@ -124,6 +124,10 @@ function compareFeatureRank(left, right) {
   return 0;
 }
 
+function normalizeIdentifier(value) {
+  return String(value || "").replace(/[^0-9A-Za-z]/g, "");
+}
+
 export function createLocalPostgisProvider({
   supabaseUrl,
   serviceRoleKey,
@@ -207,6 +211,19 @@ export function createLocalPostgisProvider({
       if (!enabled || !id) return null;
       const rows = await postRpc("get_open_parcel_detail", { p_id: id }, signal);
       return Array.isArray(rows) && rows[0] ? toFeature(rows[0]) : null;
+    },
+
+    async searchByIdentifier(identifier, signal) {
+      if (!enabled) return [];
+      const normalizedIdentifier = normalizeIdentifier(identifier);
+      if (!normalizedIdentifier) return [];
+
+      const rows = await postRpc("search_open_parcel_by_identifier", {
+        p_identifier: normalizedIdentifier,
+        p_limit: 5,
+      }, signal);
+
+      return Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
     },
 
     async neighborsByPoint(input, signal) {

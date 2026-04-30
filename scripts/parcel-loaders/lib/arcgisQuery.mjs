@@ -1,4 +1,5 @@
-function buildWhereClause({ changedSince } = {}) {
+function buildWhereClause({ changedSince, where } = {}) {
+  if (where) return where;
   if (!changedSince) return "1=1";
   return `EditDate >= DATE '${changedSince}'`;
 }
@@ -61,11 +62,12 @@ export async function queryArcgisLayer(config, options = {}) {
     offset = 0,
     bbox = null,
     changedSince = "",
+    where = "",
     signal,
   } = options;
 
   const baseParams = {
-    where: buildWhereClause({ changedSince }),
+    where: buildWhereClause({ changedSince, where }),
     outFields: "*",
     returnGeometry: "true",
     outSR: String(config.targetSrid || 4326),

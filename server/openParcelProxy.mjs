@@ -352,6 +352,15 @@ function buildGeocodeSearchResult(entry) {
   };
 }
 
+function normalizeIdentifier(value) {
+  return String(value || "").replace(/[^0-9A-Za-z]/g, "");
+}
+
+function looksLikeParcelIdentifier(query) {
+  const normalized = normalizeIdentifier(query);
+  return normalized.length >= 8 && /^\d+[A-Za-z0-9]*$/.test(normalized);
+}
+
 async function lookupParcel(input, signal) {
   if (localPostgisProvider.enabled) {
     const localLookup = await localPostgisProvider.lookupByPoint(input, signal);
@@ -504,6 +513,16 @@ async function handleSearch(requestUrl, response, signal) {
   if (cached) {
     sendJson(response, 200, cached);
     return;
+  }
+
+  if (looksLikeParcelIdentifier(query) && localPostgisProvider.enabled) {
+    const exactMatches = await localPostgisProvider.searchByIdentifier(query, signal);
+    if (exactMatches.length) {
+      const identifierResults = convertProviderFeaturesToSearchResults(exactMatches, PARCEL_PROVIDERS.LOCAL_POSTGIS);
+      setSearchCacheEntry(query, identifierResults);
+      sendJson(response, 200, identifierResults);
+      return;
+    }
   }
 
   const geocoded = await geocodeAddress(query, signal).catch(() => []);

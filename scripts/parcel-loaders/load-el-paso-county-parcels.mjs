@@ -24,6 +24,7 @@ function parseArgs(argv) {
     all: false,
     bbox: null,
     changedSince: "",
+    parcelId: "",
     pageSize: EL_PASO_COUNTY_PARCELS.pageSize,
     maxPages: 50,
   };
@@ -35,6 +36,7 @@ function parseArgs(argv) {
     if (arg === "--limit") args.limit = Number(argv[index + 1] || args.limit);
     if (arg === "--page-size") args.pageSize = Number(argv[index + 1] || args.pageSize);
     if (arg === "--max-pages") args.maxPages = Number(argv[index + 1] || args.maxPages);
+    if (arg === "--parcel-id") args.parcelId = String(argv[index + 1] || "").trim();
     if (arg === "--bbox") {
       args.bbox = String(argv[index + 1] || "")
         .split(",")
@@ -48,6 +50,17 @@ function parseArgs(argv) {
   }
 
   return args;
+}
+
+function buildParcelIdWhere(config, parcelId) {
+  const normalized = String(parcelId || "").replace(/[^0-9A-Za-z]/g, "");
+  if (!normalized) return "";
+
+  const clauses = config.parcelNumberCandidates.map((fieldName) =>
+    `REPLACE(REPLACE(REPLACE(UPPER(${fieldName}), ' ', ''), '-', ''), '.', '') = '${normalized.toUpperCase()}'`,
+  );
+
+  return clauses.join(" OR ");
 }
 
 async function ensureSourceRecord(config) {
@@ -138,6 +151,7 @@ async function loadFeatures(config, args) {
       offset,
       bbox: Array.isArray(args.bbox) && args.bbox.length === 4 ? args.bbox : null,
       changedSince: args.changedSince,
+      where: args.parcelId ? buildParcelIdWhere(config, args.parcelId) : "",
     });
 
     format = page.format;
