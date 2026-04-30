@@ -5,6 +5,8 @@ const port = Number(process.env.PORT || 8787);
 const regridToken = process.env.REGRID_API_TOKEN || "";
 const regridApiBaseUrl = (process.env.REGRID_API_BASE_URL || "https://app.regrid.com/api/v2").replace(/\/+$/, "");
 const requestTimeoutMs = Number(process.env.REGRID_REQUEST_TIMEOUT_MS || 15000);
+const searchCacheTtlMs = Number(process.env.SEARCH_CACHE_TTL_MS || 1000 * 60 * 10);
+const rateLimitCooldownMs = Number(process.env.REGRID_RATE_LIMIT_COOLDOWN_MS || 1000 * 60 * 2);
 const censusGeocoderApiBaseUrl = (process.env.CENSUS_GEOCODER_API_BASE_URL || "https://geocoding.geo.census.gov").replace(/\/+$/, "");
 const censusGeocoderBenchmark = process.env.CENSUS_GEOCODER_BENCHMARK || "Public_AR_Current";
 const geocoderApiBaseUrl = (process.env.GEOCODER_API_BASE_URL || "https://nominatim.openstreetmap.org").replace(/\/+$/, "");
@@ -16,7 +18,18 @@ if (!regridToken) {
 }
 
 const geocodeCache = new Map();
+const searchCache = new Map();
 let nextGeocodeAllowedAt = 0;
+let regridRateLimitedUntil = 0;
+
+class HttpError extends Error {
+  constructor(statusCode, message, extra = {}) {
+    super(message);
+    this.name = "HttpError";
+    this.statusCode = statusCode;
+    this.extra = extra;
+  }
+}
 
 const stateAliases = new Map([
   ["alabama", "al"], ["alaska", "ak"], ["arizona", "az"], ["arkansas", "ar"],
@@ -86,6 +99,12 @@ function withTimeout(signal, timeoutMs) {
 }
 
 async function fetchJson(pathname, params, signal) {
+  if (Date.now() < regridRateLimitedUntil) {
+    throw new HttpError(429, "Regrid is rate-limiting requests. Please retry shortly.", {
+      retryAfterMs: regridRateLimitedUntil - Date.now(),
+    });
+  }
+
   const url = new URL(pathname, `${regridApiBaseUrl}/`);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
@@ -111,7 +130,20 @@ async function fetchJson(pathname, params, signal) {
     }
 
     if (!response.ok) {
-      throw new Error(`Regrid request failed (${response.status})`);
+      if (response.status === 429) {
+        const retryAfterHeader = Number(response.headers.get("retry-after") || 0);
+        const retryAfterMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+          ? retryAfterHeader * 1000
+          : rateLimitCooldownMs;
+        regridRateLimitedUntil = Date.now() + retryAfterMs;
+        throw new HttpError(429, "Regrid is rate-limiting requests. Please retry in a moment.", {
+          retryAfterMs,
+        });
+      }
+
+      throw new HttpError(response.status, `Regrid request failed (${response.status})`, {
+        payload: json,
+      });
     }
 
     return json;
@@ -322,6 +354,25 @@ function dedupeAndRankResults(results, query) {
     })
     .slice(0, 20)
     .map(({ relevance: _relevance, ...result }) => result);
+}
+
+function getSearchCacheEntry(query) {
+  const key = normalizeText(query);
+  const cached = searchCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    searchCache.delete(key);
+    return null;
+  }
+  return cached.value;
+}
+
+function setSearchCacheEntry(query, value) {
+  const key = normalizeText(query);
+  searchCache.set(key, {
+    expiresAt: Date.now() + searchCacheTtlMs,
+    value,
+  });
 }
 
 function pickCentroid(geometry) {
@@ -601,6 +652,12 @@ async function handleSearch(requestUrl, response, signal) {
     return;
   }
 
+  const cached = getSearchCacheEntry(query);
+  if (cached) {
+    sendJson(response, 200, cached);
+    return;
+  }
+
   const merged = [];
   const geocodedPoints = await geocodeAddress(query, signal).catch(() => []);
   let foundPointParcel = false;
@@ -619,10 +676,16 @@ async function handleSearch(requestUrl, response, signal) {
     }
   }
 
-  const [typeaheadResult, addressResult] = await Promise.allSettled([
-    fetchJson("parcels/typeahead", { query }, signal),
-    fetchJson("parcels/address", { query, limit: 20 }, signal),
-  ]);
+  const canQueryRegridSearch = Date.now() >= regridRateLimitedUntil;
+  const [typeaheadResult, addressResult] = canQueryRegridSearch
+    ? await Promise.allSettled([
+        fetchJson("parcels/typeahead", { query }, signal),
+        fetchJson("parcels/address", { query, limit: 20 }, signal),
+      ])
+    : [
+        { status: "rejected", reason: new HttpError(429, "Regrid is rate-limiting requests. Please retry in a moment.") },
+        { status: "rejected", reason: new HttpError(429, "Regrid is rate-limiting requests. Please retry in a moment.") },
+      ];
 
   if (typeaheadResult.status === "fulfilled") {
     merged.push(...normalizeTypeaheadResults(typeaheadResult.value));
@@ -654,7 +717,9 @@ async function handleSearch(requestUrl, response, signal) {
     });
   }
 
-  sendJson(response, 200, dedupeAndRankResults(merged, query));
+  const ranked = dedupeAndRankResults(merged, query);
+  setSearchCacheEntry(query, ranked);
+  sendJson(response, 200, ranked);
 }
 
 async function handleDetail(llUuid, response, signal) {
@@ -784,7 +849,9 @@ const server = createServer(async (request, response) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown proxy error";
     console.error(message);
-    sendJson(response, 502, { error: message });
+    const statusCode = error instanceof HttpError ? error.statusCode : 502;
+    const extra = error instanceof HttpError ? error.extra : {};
+    sendJson(response, statusCode, { error: message, ...extra });
   }
 });
 

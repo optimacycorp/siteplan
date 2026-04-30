@@ -28,7 +28,12 @@ export function AddressSearch() {
         setSearchError("No parcels matched that address. Try a fuller street address or ZIP code.");
       }
     } catch (err) {
-      setSearchError(err instanceof Error ? err.message : "Search failed");
+      const message = err instanceof Error ? err.message : "Search failed";
+      if (/rate-limiting/i.test(message)) {
+        setSearchError("Parcel provider is rate-limiting requests. Please wait a minute and try again.");
+      } else {
+        setSearchError(message);
+      }
     } finally {
       setSearchLoading(false);
     }

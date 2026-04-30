@@ -30,7 +30,13 @@ function buildUrl(path: string, params: Record<string, string | number | boolean
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Parcel request failed (${response.status})`);
+    let payload: { error?: string } | null = null;
+    try {
+      payload = (await response.json()) as { error?: string };
+    } catch {
+      payload = null;
+    }
+    throw new Error(payload?.error || `Parcel request failed (${response.status})`);
   }
   return response.json() as Promise<T>;
 }
