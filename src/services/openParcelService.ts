@@ -1,7 +1,7 @@
 import type { ParcelDetail, ParcelNeighbor, ParcelSearchResult } from "../types/parcel";
 
 const proxyBaseUrl =
-  import.meta.env.VITE_REGRID_PROXY_BASE_URL ?? "http://localhost:8787/regrid/";
+  import.meta.env.VITE_REGRID_PROXY_BASE_URL ?? "/regrid/";
 
 type OpenParcelFeature = {
   type: "Feature";
@@ -25,7 +25,10 @@ type OpenParcelFeature = {
 
 function buildUrl(path: string, params: Record<string, string | number | boolean | undefined>) {
   const base = proxyBaseUrl.endsWith("/") ? proxyBaseUrl : `${proxyBaseUrl}/`;
-  const url = new URL(path.replace(/^\/+/, ""), base);
+  const resolvedBase = /^https?:\/\//i.test(base)
+    ? base
+    : new URL(base.replace(/^\.\//, "").replace(/^\/?/, "/"), window.location.origin).toString();
+  const url = new URL(path.replace(/^\/+/, ""), resolvedBase);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {
       url.searchParams.set(key, String(value));
