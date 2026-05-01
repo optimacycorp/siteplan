@@ -10,7 +10,10 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "deploy:build-release": "bash scripts/deploy/build-release.sh",
-    "proxy:start": "node server/regridProxy.mjs"
+    "proxy:start": "node server/regridProxy.mjs",
+    "parcels:load:cs-core": "node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group core",
+    "parcels:load:cs-expanded": "node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group expanded",
+    "parcels:load:cs-broad": "node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group broad"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.68.0",

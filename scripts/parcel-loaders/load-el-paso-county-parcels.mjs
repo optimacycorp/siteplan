@@ -22,12 +22,26 @@ export const EL_PASO_COUNTY_PARCELS = {
   sourceUrlCandidates: ["HYPERLINK", "URL", "SOURCE_URL", "PROPERTY_URL"],
 };
 
-const IMPORT_PRESETS = {
+export const IMPORT_PRESETS = {
   "cedar-heights-rampart": {
     description: "Cedar Heights / Rampart Range corridor around the current Colorado Springs target parcels.",
     bbox: [-104.905, 38.874, -104.894, 38.881],
     limit: 750,
     pageSize: 100,
+    maxPages: 10,
+  },
+  "cedar-heights-north": {
+    description: "Northern Cedar Heights parcel band for hillside homes and road frontage north of Rampart Range Road.",
+    bbox: [-104.907, 38.881, -104.892, 38.889],
+    limit: 900,
+    pageSize: 120,
+    maxPages: 10,
+  },
+  "cedar-heights-south": {
+    description: "Southern Cedar Heights parcel band and adjacent private parcels below Rampart Range Road.",
+    bbox: [-104.907, 38.868, -104.891, 38.876],
+    limit: 900,
+    pageSize: 120,
     maxPages: 10,
   },
   "cedar-heights-broad": {
@@ -36,6 +50,13 @@ const IMPORT_PRESETS = {
     limit: 1500,
     pageSize: 150,
     maxPages: 15,
+  },
+  "garden-of-the-gods-corridor": {
+    description: "Garden of the Gods / west Colorado Springs corridor for nearby parcel candidate expansion.",
+    bbox: [-104.900, 38.850, -104.845, 38.890],
+    limit: 2200,
+    pageSize: 200,
+    maxPages: 20,
   },
   "rampart-click-7333200002": {
     description: "Tight import around the clicked parcel 7333200002 and adjacent parcels.",

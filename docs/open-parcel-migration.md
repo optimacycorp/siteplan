@@ -49,8 +49,28 @@ Preset-driven area imports:
 ```bash
 node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --list-presets
 node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --preset cedar-heights-rampart
+node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --preset cedar-heights-north
+node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --preset cedar-heights-south
 node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --preset cedar-heights-broad
+node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --preset garden-of-the-gods-corridor
 node scripts/parcel-loaders/load-el-paso-county-parcels.mjs --preset rampart-click-7333200002
+```
+
+Batch target-area imports:
+
+```bash
+node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --list-groups
+node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group core
+node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group expanded
+node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group broad
+```
+
+Package shortcuts:
+
+```bash
+pnpm parcels:load:cs-core
+pnpm parcels:load:cs-expanded
+pnpm parcels:load:cs-broad
 ```
 
 Useful targeted import commands:
@@ -65,6 +85,7 @@ Recommended Colorado Springs workflow:
 1. Start with `--preset cedar-heights-rampart` to load the immediate target zone.
 2. Use `--around <lat>,<lng>` after a failed click to import a tighter parcel cluster.
 3. Expand with `--preset cedar-heights-broad` when address ranking needs more nearby candidates.
+4. Use the batch runner `--group expanded` or `pnpm parcels:load:cs-expanded` when you want repeatable neighborhood coverage without remembering each preset.
 
 Debug endpoints:
 
