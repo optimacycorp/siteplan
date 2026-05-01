@@ -171,6 +171,36 @@ export function createLocalPostgisProvider({
     }
   }
 
+  async function getRest(path, signal) {
+    if (!enabled) {
+      throw new HttpError(500, "Supabase local parcel provider is not configured.");
+    }
+
+    const timeout = withTimeout(signal, timeoutMs);
+    try {
+      const response = await fetch(`${baseUrl}${path}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        signal: timeout.signal,
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new HttpError(response.status, `Supabase REST request failed (${response.status})`, {
+          detail: text || undefined,
+        });
+      }
+
+      return response.json();
+    } finally {
+      timeout.cleanup();
+    }
+  }
+
   return {
     enabled,
     async lookupByPoint(input, signal) {
@@ -237,6 +267,16 @@ export function createLocalPostgisProvider({
       }, signal);
 
       return Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
+    },
+
+    async recentImportRuns(limit = 10, signal) {
+      if (!enabled) return [];
+      const safeLimit = Math.max(1, Math.min(Number(limit || 10), 50));
+      const rows = await getRest(
+        `/rest/v1/parcel_import_runs?select=id,source_key,status,mode,started_at,finished_at,fetched_count,upserted_count,error_message,metadata&order=started_at.desc&limit=${safeLimit}`,
+        signal,
+      );
+      return Array.isArray(rows) ? rows : [];
     },
 
     async neighborsByPoint(input, signal) {

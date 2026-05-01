@@ -65,3 +65,20 @@ Recommended Colorado Springs workflow:
 1. Start with `--preset cedar-heights-rampart` to load the immediate target zone.
 2. Use `--around <lat>,<lng>` after a failed click to import a tighter parcel cluster.
 3. Expand with `--preset cedar-heights-broad` when address ranking needs more nearby candidates.
+
+Debug endpoints:
+
+```bash
+curl -i "https://siteplan.gomil.com/regrid/debug/import-runs?limit=10"
+curl -i "https://siteplan.gomil.com/regrid/debug/search-diagnostics?query=3245%20Rampart%20Range%20Road%2C%2080919%2C%20Colorado%20Springs%2C%20Colorado"
+curl -i "https://siteplan.gomil.com/regrid/debug/search-diagnostics?query=7333200002"
+```
+
+How to use them:
+
+1. `debug/import-runs` shows the most recent parcel imports and whether they succeeded.
+2. `debug/search-diagnostics` shows:
+   - whether a query is being treated like an address or parcel identifier
+   - local identifier/text matches
+   - the geocode candidates being tested
+   - the nearby local parcel candidates gathered around each geocode point

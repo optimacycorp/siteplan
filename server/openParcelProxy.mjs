@@ -473,6 +473,25 @@ function dedupeFeatures(features) {
   return deduped;
 }
 
+function summarizeFeature(feature) {
+  const properties = feature?.properties ?? {};
+  return {
+    id: String(properties.id || ""),
+    parcelNumber: String(properties.parcelNumber || properties.apn || properties.scheduleNumber || ""),
+    address: String(properties.situsAddress || properties.address || ""),
+    ownerName: String(properties.ownerName || ""),
+    acreage: Number(properties.acreage || 0),
+    county: String(properties.county || ""),
+    state: String(properties.state || ""),
+    centroid: Array.isArray(properties.centroid) ? properties.centroid : null,
+    matchType: String(properties.matchType || "provider"),
+    distanceMeters: Number.isFinite(Number(properties.distanceMeters))
+      ? Number(properties.distanceMeters)
+      : null,
+    sourceKey: String(properties.sourceKey || ""),
+  };
+}
+
 async function searchLocalCandidates(input, signal) {
   if (!localPostgisProvider.enabled) return [];
 
@@ -681,6 +700,65 @@ async function handleNeighbors(requestUrl, response, signal) {
   sendJson(response, 200, { features: [] });
 }
 
+async function handleDebugImportRuns(requestUrl, response, signal) {
+  if (!localPostgisProvider.enabled) {
+    sendJson(response, 200, { runs: [], providerEnabled: false });
+    return;
+  }
+
+  const limit = Number(requestUrl.searchParams.get("limit") || 10);
+  const runs = await localPostgisProvider.recentImportRuns(limit, signal);
+  sendJson(response, 200, {
+    providerEnabled: true,
+    runs,
+  });
+}
+
+async function handleDebugSearchDiagnostics(requestUrl, response, signal) {
+  const query = requestUrl.searchParams.get("query")?.trim() || "";
+  if (!query) {
+    sendJson(response, 400, { error: "Missing query" });
+    return;
+  }
+
+  const geocoded = await geocodeAddress(query, signal).catch(() => []);
+  const identifierMatches = looksLikeParcelIdentifier(query) && localPostgisProvider.enabled
+    ? await localPostgisProvider.searchByIdentifier(query, signal)
+    : [];
+  const localTextMatches = !looksLikeAddressQuery(query) && localPostgisProvider.enabled
+    ? await localPostgisProvider.searchByText(query, signal)
+    : [];
+
+  const geocodeCandidates = [];
+  for (const entry of geocoded.slice(0, 4)) {
+    const localCandidates = await searchLocalCandidates({
+      lat: entry.lat,
+      lng: entry.lng,
+      query,
+      state: defaultState,
+      county: defaultCounty,
+    }, signal);
+
+    geocodeCandidates.push({
+      geocode: entry,
+      geocodePenalty: scoreGeocodedEntry(entry, query),
+      localCandidates: localCandidates.slice(0, 8).map((feature) => ({
+        ...summarizeFeature(feature),
+        searchScore: Math.round(scoreSearchFeature(feature, entry)),
+      })),
+    });
+  }
+
+  sendJson(response, 200, {
+    query,
+    looksLikeAddress: looksLikeAddressQuery(query),
+    looksLikeParcelIdentifier: looksLikeParcelIdentifier(query),
+    identifierMatches: identifierMatches.map(summarizeFeature),
+    localTextMatches: localTextMatches.map(summarizeFeature),
+    geocodeCandidates,
+  });
+}
+
 function handleError(response, error) {
   const message = error instanceof Error ? error.message : "Unknown parcel proxy error";
   const statusCode = error instanceof HttpError ? error.statusCode : 502;
@@ -744,6 +822,16 @@ export function startOpenParcelProxy() {
 
       if (requestUrl.pathname === "/neighbors") {
         await handleNeighbors(requestUrl, response, request.signal);
+        return;
+      }
+
+      if (requestUrl.pathname === "/debug/import-runs") {
+        await handleDebugImportRuns(requestUrl, response, request.signal);
+        return;
+      }
+
+      if (requestUrl.pathname === "/debug/search-diagnostics") {
+        await handleDebugSearchDiagnostics(requestUrl, response, request.signal);
         return;
       }
 
