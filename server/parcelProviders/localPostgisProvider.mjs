@@ -226,6 +226,19 @@ export function createLocalPostgisProvider({
       return Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
     },
 
+    async searchByText(query, signal) {
+      if (!enabled) return [];
+      const trimmedQuery = String(query || "").trim();
+      if (!trimmedQuery) return [];
+
+      const rows = await postRpc("search_open_parcels_text", {
+        p_query: trimmedQuery,
+        p_limit: 8,
+      }, signal);
+
+      return Array.isArray(rows) ? rows.map(toFeature).filter(Boolean) : [];
+    },
+
     async neighborsByPoint(input, signal) {
       if (!enabled) return [];
       const rows = await postRpc("lookup_open_parcel_neighbors", {

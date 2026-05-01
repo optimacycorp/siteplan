@@ -374,6 +374,15 @@ function looksLikeParcelIdentifier(query) {
   return normalized.length >= 8 && /^\d+[A-Za-z0-9]*$/.test(normalized);
 }
 
+function looksLikeAddressQuery(query) {
+  const normalized = normalizeText(query);
+  if (!normalized) return false;
+  const hasStreetNumber = /\b\d{1,6}\b/.test(normalized);
+  const hasStreetWord = /\b(road|rd|street|st|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|place|pl|way|circle|cir|trail|trl)\b/.test(normalized);
+  const hasComma = query.includes(",");
+  return (hasStreetNumber && hasStreetWord) || hasComma;
+}
+
 async function lookupParcel(input, signal) {
   if (localPostgisProvider.enabled) {
     const localLookup = await localPostgisProvider.lookupByPoint(input, signal);
@@ -534,6 +543,16 @@ async function handleSearch(requestUrl, response, signal) {
       const identifierResults = convertProviderFeaturesToSearchResults(exactMatches, PARCEL_PROVIDERS.LOCAL_POSTGIS);
       setSearchCacheEntry(query, identifierResults);
       sendJson(response, 200, identifierResults);
+      return;
+    }
+  }
+
+  if (!looksLikeAddressQuery(query) && localPostgisProvider.enabled) {
+    const localTextMatches = await localPostgisProvider.searchByText(query, signal);
+    if (localTextMatches.length) {
+      const textResults = convertProviderFeaturesToSearchResults(localTextMatches, PARCEL_PROVIDERS.LOCAL_POSTGIS);
+      setSearchCacheEntry(query, textResults);
+      sendJson(response, 200, textResults);
       return;
     }
   }
