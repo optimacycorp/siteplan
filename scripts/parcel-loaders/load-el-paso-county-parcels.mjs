@@ -17,9 +17,36 @@ export const EL_PASO_COUNTY_PARCELS = {
   legalCandidates: ["LEGAL", "LEGAL_DESC"],
 };
 
+const IMPORT_PRESETS = {
+  "cedar-heights-rampart": {
+    description: "Cedar Heights / Rampart Range corridor around the current Colorado Springs target parcels.",
+    bbox: [-104.905, 38.874, -104.894, 38.881],
+    limit: 750,
+    pageSize: 100,
+    maxPages: 10,
+  },
+  "cedar-heights-broad": {
+    description: "Broader Cedar Heights area for nearby parcel candidates and surrounding roads.",
+    bbox: [-104.915, 38.868, -104.888, 38.890],
+    limit: 1500,
+    pageSize: 150,
+    maxPages: 15,
+  },
+  "rampart-click-7333200002": {
+    description: "Tight import around the clicked parcel 7333200002 and adjacent parcels.",
+    around: [38.87837, -104.897322],
+    radiusMeters: 300,
+    limit: 600,
+    pageSize: 100,
+    maxPages: 10,
+  },
+};
+
 function parseArgs(argv) {
   const args = {
     dryRun: false,
+    listPresets: false,
+    preset: "",
     limit: 25,
     all: false,
     bbox: null,
@@ -34,7 +61,9 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--dry-run") args.dryRun = true;
+    if (arg === "--list-presets") args.listPresets = true;
     if (arg === "--all") args.all = true;
+    if (arg === "--preset") args.preset = String(argv[index + 1] || "").trim();
     if (arg === "--limit") args.limit = Number(argv[index + 1] || args.limit);
     if (arg === "--page-size") args.pageSize = Number(argv[index + 1] || args.pageSize);
     if (arg === "--max-pages") args.maxPages = Number(argv[index + 1] || args.maxPages);
@@ -55,6 +84,19 @@ function parseArgs(argv) {
 
   if (args.all) {
     args.limit = Number.POSITIVE_INFINITY;
+  }
+
+  if (args.preset) {
+    const preset = IMPORT_PRESETS[args.preset];
+    if (!preset) {
+      throw new Error(`Unknown preset "${args.preset}". Use --list-presets to see available presets.`);
+    }
+    if (!args.bbox && preset.bbox) args.bbox = [...preset.bbox];
+    if (!args.around && preset.around) args.around = [...preset.around];
+    if ((!args.radiusMeters || args.radiusMeters === 120) && preset.radiusMeters) args.radiusMeters = preset.radiusMeters;
+    if (args.limit === 25 && Number.isFinite(preset.limit)) args.limit = preset.limit;
+    if (args.pageSize === EL_PASO_COUNTY_PARCELS.pageSize && Number.isFinite(preset.pageSize)) args.pageSize = preset.pageSize;
+    if (args.maxPages === 50 && Number.isFinite(preset.maxPages)) args.maxPages = preset.maxPages;
   }
 
   return args;
@@ -247,6 +289,15 @@ async function loadFeatures(config, args) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.listPresets) {
+    console.log(JSON.stringify({
+      presets: Object.entries(IMPORT_PRESETS).map(([key, preset]) => ({
+        key,
+        ...preset,
+      })),
+    }, null, 2));
+    return;
+  }
   const page = await loadFeatures(EL_PASO_COUNTY_PARCELS, args);
 
   const sampleFeature = page.features[0] ?? null;
@@ -259,6 +310,7 @@ async function main() {
 
   console.log(JSON.stringify({
     dryRun: args.dryRun,
+    preset: args.preset || null,
     fetchedCount: page.features.length,
     format: page.format,
     pageCount: page.pageCount,
@@ -284,6 +336,7 @@ async function main() {
     serviceRoleKey,
     mode: args.bbox ? "on_demand" : "manual",
     metadata: {
+      preset: args.preset || null,
       bbox: args.bbox,
       around: args.around,
       radiusMeters: args.radiusMeters,
