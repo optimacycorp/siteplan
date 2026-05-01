@@ -25,6 +25,11 @@ export function QuickMapCanvas() {
   const suppressClickRef = useRef(false);
   const draggingVertexRef = useRef<{ drawingId: string; pointIndex: number } | null>(null);
   const drawingDimensionRef = useRef<{ start: { lng: number; lat: number } } | null>(null);
+  const drawingStructureRectRef = useRef<{
+    start: { lng: number; lat: number };
+    startPixel: { x: number; y: number };
+    dragging: boolean;
+  } | null>(null);
   const {
     basemap,
     selectedParcel,
@@ -50,6 +55,18 @@ export function QuickMapCanvas() {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  function buildRectanglePoints(
+    start: { lng: number; lat: number },
+    end: { lng: number; lat: number },
+  ) {
+    return [
+      { lng: start.lng, lat: start.lat },
+      { lng: end.lng, lat: start.lat },
+      { lng: end.lng, lat: end.lat },
+      { lng: start.lng, lat: end.lat },
+    ];
+  }
 
   const layers = useMemo(
     () =>
@@ -94,6 +111,7 @@ export function QuickMapCanvas() {
       map.dragPan.enable();
       draggingVertexRef.current = null;
       drawingDimensionRef.current = null;
+      drawingStructureRectRef.current = null;
       setCursor("");
     };
 
@@ -116,6 +134,28 @@ export function QuickMapCanvas() {
             lat: event.lngLat.lat,
           },
         ]);
+        return;
+      }
+
+      if (drawingStructureRectRef.current) {
+        const interaction = drawingStructureRectRef.current;
+        const pixelDistance = Math.hypot(
+          event.point.x - interaction.startPixel.x,
+          event.point.y - interaction.startPixel.y,
+        );
+
+        if (!interaction.dragging && pixelDistance >= 6) {
+          interaction.dragging = true;
+        }
+
+        if (interaction.dragging) {
+          setActivePoints(
+            buildRectanglePoints(interaction.start, {
+              lng: event.lngLat.lng,
+              lat: event.lngLat.lat,
+            }),
+          );
+        }
       }
     };
 
@@ -138,6 +178,25 @@ export function QuickMapCanvas() {
         suppressClickRef.current = true;
         completeActiveFeature();
         finishPointerInteraction();
+        return;
+      }
+
+      if (drawingStructureRectRef.current?.dragging) {
+        const { start } = drawingStructureRectRef.current;
+        setActivePoints(
+          buildRectanglePoints(start, {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          }),
+        );
+        suppressClickRef.current = true;
+        completeActiveFeature();
+        finishPointerInteraction();
+        return;
+      }
+
+      if (drawingStructureRectRef.current && !drawingStructureRectRef.current.dragging) {
+        drawingStructureRectRef.current = null;
       }
     };
 
@@ -191,6 +250,21 @@ export function QuickMapCanvas() {
           },
         ]);
         setCursor("crosshair");
+        return;
+      }
+
+      if (modeRef.current === "structure-polygon") {
+        drawingStructureRectRef.current = {
+          start: {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          },
+          startPixel: {
+            x: event.point.x,
+            y: event.point.y,
+          },
+          dragging: false,
+        };
       }
     });
 

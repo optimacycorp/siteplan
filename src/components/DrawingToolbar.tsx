@@ -36,8 +36,8 @@ export function DrawingToolbar() {
       ) : null}
       {selectedParcel ? (
         <p className="muted">
-          Click to place points. Drag dimension lines in one motion. In Select mode, drag blue
-          vertices to refine existing geometry.
+          Click to place points. Drag structures or dimension lines in one motion. In Select mode,
+          drag blue vertices to refine existing geometry.
         </p>
       ) : null}
       {selectedParcel && mode !== "select" ? (
