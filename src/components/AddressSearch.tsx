@@ -1,6 +1,8 @@
 import { fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import type { ParcelDetail, ParcelSearchResult } from "../types/parcel";
+import { EmptyState } from "./EmptyState";
+import { InlineNotice } from "./InlineNotice";
 
 export function AddressSearch() {
   const {
@@ -96,33 +98,19 @@ export function AddressSearch() {
 
   function describeResult(result: ParcelSearchResult) {
     if (result.kind === "geocode") {
-      return "Use the mapped address location, then click the parcel manually if needed.";
+      return "Mapped address only";
     }
-
-    const parts = [];
-    if (result.matchType === "contains") {
-      parts.push("Contains the matched point");
-    } else if (result.matchType === "near") {
-      parts.push("Near the matched point");
-    }
-
-    if (result.acreage && Number.isFinite(result.acreage)) {
-      parts.push(`${result.acreage.toFixed(2)} acres`);
-    }
-
-    if (result.parcelNumber) {
-      parts.push(`APN ${result.parcelNumber}`);
-    }
-
-    return parts.join(" • ");
+    if (result.matchType === "contains") return "Best match";
+    if (result.matchType === "near") return "Nearby parcel";
+    return "Parcel candidate";
   }
 
   return (
     <section className="panel-section">
       <h2>1. Find property</h2>
       <p className="muted">
-        Search by street address, city, and ZIP. Example: 3245 Rampart Range Road, 80919,
-        Colorado Springs, Colorado
+        Start with the property address. If the parcel boundary is not selected automatically,
+        click the parcel on the map.
       </p>
       <input
         className="search-input"
@@ -149,21 +137,33 @@ export function AddressSearch() {
       {!searchError && searchResults.length > 0 ? (
         <p className="muted">{searchResults.length} parcel candidate(s)</p>
       ) : null}
+      {!searchLoading && !searchError && !searchResults.length ? (
+        <EmptyState
+          title="Start with an address"
+          body="Search for the property address to load parcel candidates or a mapped location."
+        />
+      ) : null}
       {searchResults.map((result) => (
-        <button
-          className="result-card"
-          key={result.llUuid}
-          onClick={() => void selectParcel(result.llUuid)}
-          disabled={selectedParcelLoading}
-          type="button"
-        >
-          <strong>{result.headline || result.address || result.llUuid}</strong>
-          <p className="muted">{result.context || result.path || "Parcel search result"}</p>
-          {describeResult(result) ? <p className="muted">{describeResult(result)}</p> : null}
-          <span className="result-meta">
-            {result.sourceKey || result.provider || "parcel-provider"}
-          </span>
-        </button>
+        <div className="result-card" key={result.llUuid}>
+          <button
+            className="result-card-button"
+            onClick={() => void selectParcel(result.llUuid)}
+            disabled={selectedParcelLoading}
+            type="button"
+          >
+            <strong>{result.headline || result.address || result.llUuid}</strong>
+            <p className="muted">{result.parcelNumber ? `APN ${result.parcelNumber}` : result.context || "Parcel search result"}</p>
+            {result.acreage ? <p className="muted">{result.acreage.toFixed(2)} acres</p> : null}
+            <InlineNotice tone={result.kind === "geocode" ? "warning" : result.matchType === "contains" ? "success" : "info"}>
+              {describeResult(result)}
+            </InlineNotice>
+          </button>
+          <details className="result-details">
+            <summary>More details</summary>
+            <p className="muted">{result.context || result.path || "Parcel search result"}</p>
+            <p className="muted">{result.sourceKey || result.provider || "parcel-provider"}</p>
+          </details>
+        </div>
       ))}
       {selectedParcelLoading ? (
         <p className="muted">Loading parcel boundary and adjoining parcels...</p>

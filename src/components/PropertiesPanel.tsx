@@ -1,4 +1,5 @@
 import { useDrawingStore } from "../state/drawingStore";
+import { EmptyState } from "./EmptyState";
 
 export function PropertiesPanel() {
   const drawings = useDrawingStore((state) => state.drawings);
@@ -10,7 +11,12 @@ export function PropertiesPanel() {
   return (
     <section className="panel-section">
       <h2>Drawing features</h2>
-      {!drawings.length ? <p className="muted">No drawing features yet.</p> : null}
+      {!drawings.length ? (
+        <EmptyState
+          title="No plan items yet"
+          body="After you confirm the parcel, add a structure, driveway, dimension, easement, or label."
+        />
+      ) : null}
       {selectedDrawing ? (
         <div className="property-card">
           <label className="field-label" htmlFor="drawing-name">
@@ -22,9 +28,7 @@ export function PropertiesPanel() {
             onChange={(event) => renameSelected(event.target.value)}
             value={selectedDrawing.label}
           />
-          <p className="muted">
-            {selectedDrawing.type} • {selectedDrawing.points.length} point(s)
-          </p>
+          <p className="muted">{selectedDrawing.type} • {selectedDrawing.points.length} point(s)</p>
         </div>
       ) : null}
       {drawings.map((feature) => (
@@ -35,9 +39,7 @@ export function PropertiesPanel() {
           type="button"
         >
           <strong>{feature.label}</strong>
-          <p className="muted">
-            {feature.type} • {feature.points.length} point(s)
-          </p>
+          <p className="muted">{feature.type} • {feature.points.length} point(s)</p>
         </button>
       ))}
     </section>

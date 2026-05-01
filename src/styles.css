@@ -87,6 +87,53 @@ select {
   margin: 0 0 0.65rem;
 }
 
+.workflow-steps {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.workflow-step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  border: 1px solid #e1e7ef;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.workflow-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: #edf3f6;
+  color: #17324b;
+}
+
+.workflow-step-current {
+  border-color: #2563eb;
+  background: #f8fbff;
+}
+
+.workflow-step-current .workflow-step-index {
+  background: #2563eb;
+  color: #fff;
+}
+
+.workflow-step-done .workflow-step-index {
+  background: #1f6d52;
+  color: #fff;
+}
+
+.workflow-step-locked {
+  opacity: 0.72;
+}
+
 .muted {
   color: #607084;
   font-size: 0.875rem;
@@ -104,6 +151,31 @@ select {
   background: #fff1f2;
   color: #b42318;
   border: 1px solid #fecdd3;
+}
+
+.inline-notice {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+
+.inline-notice-info {
+  background: #eef6ff;
+  color: #174ea6;
+  border: 1px solid #bfdbfe;
+}
+
+.inline-notice-success {
+  background: #edfdf3;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.inline-notice-warning {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
 }
 
 .primary-button,
@@ -151,6 +223,22 @@ select {
   border-color: #2563eb;
 }
 
+.empty-state {
+  padding: 1rem;
+  border: 1px dashed #c7d4de;
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.empty-state strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.empty-state-action {
+  margin-top: 0.75rem;
+}
+
 .panel-actions,
 .toolbar-grid,
 .layer-list {
@@ -182,6 +270,28 @@ select {
   cursor: pointer;
 }
 
+.result-card-button {
+  width: 100%;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.result-card-button:disabled {
+  cursor: not-allowed;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
 .result-card-active {
   border-color: #2563eb;
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12);
@@ -192,6 +302,24 @@ select {
   margin-top: 0.45rem;
   color: #728195;
   font-size: 0.75rem;
+}
+
+.result-details {
+  margin-top: 0.6rem;
+}
+
+.result-details summary {
+  cursor: pointer;
+  color: #36506b;
+  font-size: 0.82rem;
+}
+
+.advanced-layer-list {
+  margin-top: 0.75rem;
+}
+
+.two-column-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .field-label {

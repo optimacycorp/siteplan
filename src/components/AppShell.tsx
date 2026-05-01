@@ -4,19 +4,21 @@ type AppShellProps = {
   left: ReactNode;
   map: ReactNode;
   right: ReactNode;
+  subtitle: string;
+  exportReady: boolean;
 };
 
-export function AppShell({ left, map, right }: AppShellProps) {
+export function AppShell({ left, map, right, subtitle, exportReady }: AppShellProps) {
   return (
     <div className="app-shell">
       <header className="topbar">
         <div>
           <strong>Optimacy QuickSite</strong>
-          <span>Address-to-site-plan MVP</span>
+          <span>{subtitle}</span>
         </div>
         <div className="topbar-actions">
           <span>Conceptual planning exhibit only</span>
-          <button className="primary-button" onClick={() => window.print()} type="button">
+          <button className="primary-button" disabled={!exportReady} onClick={() => window.print()} type="button">
             Export PDF
           </button>
         </div>

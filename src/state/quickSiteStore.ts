@@ -19,6 +19,7 @@ type QuickSiteState = {
   setSearchError: (message: string) => void;
   setSelectedParcelLoading: (loading: boolean) => void;
   setSelectedParcel: (parcel: ParcelDetail | null) => void;
+  clearSelectedParcel: () => void;
   setNeighbors: (neighbors: ParcelNeighbor[]) => void;
   toggleLayer: (layer: string) => void;
 };
@@ -47,6 +48,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   setSearchError: (searchError) => set({ searchError }),
   setSelectedParcelLoading: (selectedParcelLoading) => set({ selectedParcelLoading }),
   setSelectedParcel: (selectedParcel) => set({ selectedParcel }),
+  clearSelectedParcel: () => set({ selectedParcel: null, neighbors: [] }),
   setNeighbors: (neighbors) => set({ neighbors }),
   toggleLayer: (layer) =>
     set((state) => ({
