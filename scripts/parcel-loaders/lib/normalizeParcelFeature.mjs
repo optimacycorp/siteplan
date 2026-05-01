@@ -33,9 +33,14 @@ export function detectFieldMapping(config, properties) {
   return {
     externalId: detectFieldName(properties, config.idFieldCandidates),
     parcelNumber: detectFieldName(properties, config.parcelNumberCandidates),
+    apn: detectFieldName(properties, config.apnCandidates ?? []),
+    scheduleNumber: detectFieldName(properties, config.scheduleCandidates ?? []),
     situsAddress: detectFieldName(properties, config.addressCandidates),
     ownerName: detectFieldName(properties, config.ownerCandidates),
     legalDescription: detectFieldName(properties, config.legalCandidates),
+    zoning: detectFieldName(properties, config.zoningCandidates ?? []),
+    landUse: detectFieldName(properties, config.landUseCandidates ?? []),
+    sourceUrl: detectFieldName(properties, config.sourceUrlCandidates ?? []),
   };
 }
 
@@ -52,22 +57,36 @@ export function normalizeParcelFeature(feature, config, fieldMapping = null) {
       : 0;
 
   const cleanedParcelNumber = pickValue(properties, mapping.parcelNumber);
+  const cleanedApn = pickValue(properties, mapping.apn) || cleanedParcelNumber;
+  const cleanedScheduleNumber = pickValue(properties, mapping.scheduleNumber) || cleanedParcelNumber;
   const cleanedAddress = pickValue(properties, mapping.situsAddress);
   const cleanedOwner = pickValue(properties, mapping.ownerName);
   const cleanedLegal = pickValue(properties, mapping.legalDescription);
+  const cleanedZoning = pickValue(properties, mapping.zoning);
+  const cleanedLandUse = pickValue(properties, mapping.landUse);
+  const cleanedSourceUrl = pickValue(properties, mapping.sourceUrl) || pickValue(properties, "HYPERLINK");
 
   return {
     source_key: config.sourceKey,
     external_id: pickValue(properties, mapping.externalId),
     parcel_number: cleanedParcelNumber,
+    apn: cleanedApn,
+    schedule_number: cleanedScheduleNumber,
     situs_address: cleanedAddress,
     owner_name: cleanedOwner,
     legal_description: cleanedLegal,
+    land_use: cleanedLandUse,
+    zoning: cleanedZoning,
     acreage: derivedAcreage,
     geometry,
     properties: {
       ...properties,
       PARCEL: cleanedParcelNumber || properties.PARCEL || "",
+      APN: cleanedApn || properties.APN || "",
+      SCHEDULE: cleanedScheduleNumber || properties.SCHEDULE || "",
+      ZONING: cleanedZoning || properties.ZONING || "",
+      LAND_USE: cleanedLandUse || properties.LAND_USE || "",
+      HYPERLINK: cleanedSourceUrl || properties.HYPERLINK || "",
       county: String(properties.county || "El Paso"),
       state: String(properties.state || "CO"),
     },

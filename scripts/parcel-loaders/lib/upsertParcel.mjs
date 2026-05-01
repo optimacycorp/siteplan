@@ -8,9 +8,13 @@ export async function upsertParcel({ supabaseUrl, serviceRoleKey, parcel, signal
     source_key: parcel.source_key,
     external_id: parcel.external_id || null,
     parcel_number: parcel.parcel_number || null,
+    apn: parcel.apn || null,
+    schedule_number: parcel.schedule_number || null,
     situs_address: parcel.situs_address || null,
     owner_name: parcel.owner_name || null,
     legal_description: parcel.legal_description || null,
+    land_use: parcel.land_use || null,
+    zoning: parcel.zoning || null,
     acreage: Number.isFinite(parcel.acreage) ? parcel.acreage : null,
     properties: {
       ...parcel.properties,

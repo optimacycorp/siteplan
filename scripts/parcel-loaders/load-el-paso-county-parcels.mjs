@@ -12,9 +12,14 @@ export const EL_PASO_COUNTY_PARCELS = {
   pageSize: 1000,
   idFieldCandidates: ["OBJECTID", "FID", "PARCEL_ID", "SCHEDULE"],
   parcelNumberCandidates: ["PARCEL", "PARCEL_NO", "PARCEL_NUM", "SCHEDULE", "ACCOUNT"],
+  apnCandidates: ["APN", "PARCEL", "PARCEL_NO", "PARCEL_NUM", "ACCOUNT"],
+  scheduleCandidates: ["SCHEDULE", "SCHEDULE_NO", "SCHEDNUM", "PARCEL"],
   addressCandidates: ["SITUS", "SITEADDR", "ADDRESS", "PROP_ADDR"],
   ownerCandidates: ["OWNER", "OWNER_NAME", "TAXPAYER"],
   legalCandidates: ["LEGAL", "LEGAL_DESC"],
+  zoningCandidates: ["ZONING", "ZONE", "ZONECLASS", "ZONE_DESC"],
+  landUseCandidates: ["LANDUSE", "LAND_USE", "USE_CODE", "USE_DESC"],
+  sourceUrlCandidates: ["HYPERLINK", "URL", "SOURCE_URL", "PROPERTY_URL"],
 };
 
 const IMPORT_PRESETS = {
