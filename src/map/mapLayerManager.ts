@@ -15,6 +15,32 @@ export type MapLayerDescriptor = {
   interactive?: boolean;
 };
 
+const APP_LAYER_ORDER = [
+  "neighbors-fill",
+  "neighbors-outline",
+  "parcel-fill",
+  "parcel-outline",
+  "drawing-polygons-fill",
+  "drawing-polygons-outline",
+  "drawing-lines",
+  "active-sketch",
+  "drawing-labels",
+] as const;
+
+function findInsertBeforeLayer(map: maplibregl.Map, layerId: string) {
+  const currentIndex = APP_LAYER_ORDER.indexOf(layerId as (typeof APP_LAYER_ORDER)[number]);
+  if (currentIndex === -1) return undefined;
+
+  for (let index = currentIndex + 1; index < APP_LAYER_ORDER.length; index += 1) {
+    const candidate = APP_LAYER_ORDER[index];
+    if (map.getLayer(candidate)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
 export function registerMapLayers(map: maplibregl.Map, descriptors: MapLayerDescriptor[]) {
   descriptors.forEach((descriptor) => {
     const existingSource = map.getSource(descriptor.sourceId) as
@@ -31,6 +57,7 @@ export function registerMapLayers(map: maplibregl.Map, descriptors: MapLayerDesc
     }
 
     if (!map.getLayer(descriptor.id)) {
+      const beforeId = findInsertBeforeLayer(map, descriptor.id);
       map.addLayer({
         id: descriptor.id,
         type: descriptor.layer.type,
@@ -40,8 +67,13 @@ export function registerMapLayers(map: maplibregl.Map, descriptors: MapLayerDesc
           visibility: descriptor.visible === false ? "none" : "visible",
           ...(descriptor.layer.layout ?? {}),
         } as never,
-      } as maplibregl.LayerSpecification);
+      } as maplibregl.LayerSpecification, beforeId);
       return;
+    }
+
+    const beforeId = findInsertBeforeLayer(map, descriptor.id);
+    if (beforeId) {
+      map.moveLayer(descriptor.id, beforeId);
     }
 
     map.setLayoutProperty(

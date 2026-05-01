@@ -1,5 +1,6 @@
 import { AddressSearch } from "./components/AddressSearch";
 import { AppShell } from "./components/AppShell";
+import { DevStatusPanel } from "./components/DevStatusPanel";
 import { DrawingToolbar } from "./components/DrawingToolbar";
 import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
@@ -21,6 +22,7 @@ export function App() {
         <>
           <ParcelSummary />
           <PropertiesPanel />
+          <DevStatusPanel />
         </>
       }
     />

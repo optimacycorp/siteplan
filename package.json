@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "check:env": "node scripts/check-env.mjs",
     "deploy:build-release": "bash scripts/deploy/build-release.sh",
     "proxy:start": "node server/regridProxy.mjs",
     "parcels:load:cs-core": "node scripts/parcel-loaders/load-colorado-springs-target-areas.mjs --group core",

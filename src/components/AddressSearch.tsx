@@ -1,4 +1,4 @@
-import { fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/regridParcelService";
+import { fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import type { ParcelDetail, ParcelSearchResult } from "../types/parcel";
 

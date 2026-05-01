@@ -219,6 +219,21 @@ select {
   font-weight: 600;
 }
 
+.dev-status-panel {
+  background: rgba(12, 22, 36, 0.96);
+  color: #eef6ff;
+}
+
+.dev-status-panel h2,
+.dev-status-panel .summary-grid dt,
+.dev-status-panel .muted {
+  color: #b8c8db;
+}
+
+.dev-status-panel .summary-grid dd {
+  color: #f8fbff;
+}
+
 .map-canvas {
   position: absolute;
   inset: 0;

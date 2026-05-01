@@ -3,7 +3,7 @@ import maplibregl, { LngLatBounds } from "maplibre-gl";
 import {
   fetchParcelCandidatesAtPoint,
   fetchParcelNeighbors,
-} from "../services/regridParcelService";
+} from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
 import { getBasemapDefinition } from "./basemapRegistry";
@@ -12,15 +12,16 @@ import { registerMapLayers } from "./mapLayerManager";
 import { geometryBounds } from "./mapUtils";
 
 const defaultCenter: [number, number] = [
-  Number(import.meta.env.VITE_DEFAULT_CENTER_LNG ?? -104.871),
-  Number(import.meta.env.VITE_DEFAULT_CENTER_LAT ?? 38.93),
+  Number(import.meta.env.VITE_DEFAULT_CENTER_LNG ?? -104.897322),
+  Number(import.meta.env.VITE_DEFAULT_CENTER_LAT ?? 38.87837),
 ];
-const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM ?? 16);
+const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM ?? 17);
 
 export function QuickMapCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const modeRef = useRef(useDrawingStore.getState().mode);
+  const layersRef = useRef<ReturnType<typeof buildMapLayers>>([]);
   const {
     basemap,
     selectedParcel,
@@ -57,6 +58,15 @@ export function QuickMapCanvas() {
       }),
     [selectedParcel, neighbors, drawings, activePoints, selectedDrawingId, layerVisibility],
   );
+
+  useEffect(() => {
+    layersRef.current = layers;
+  }, [layers]);
+
+  function syncAppLayers(map: maplibregl.Map) {
+    if (!map.isStyleLoaded()) return;
+    registerMapLayers(map, layersRef.current);
+  }
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -132,7 +142,7 @@ export function QuickMapCanvas() {
       completeActiveFeature();
     });
 
-    map.on("load", () => registerMapLayers(map, layers));
+    map.on("load", () => syncAppLayers(map));
     mapRef.current = map;
 
     return () => {
@@ -145,13 +155,13 @@ export function QuickMapCanvas() {
     const map = mapRef.current;
     if (!map) return;
     map.setStyle(getBasemapDefinition(basemap).style);
-    map.once("styledata", () => registerMapLayers(map, layers));
+    map.once("style.load", () => syncAppLayers(map));
   }, [basemap]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map?.isStyleLoaded()) return;
-    registerMapLayers(map, layers);
+    syncAppLayers(map);
   }, [layers]);
 
   useEffect(() => {

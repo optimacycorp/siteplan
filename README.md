@@ -7,24 +7,46 @@ A lightweight address-to-site-plan MVP focused on:
 - sketching a simple conceptual planning exhibit
 - exporting through the browser print flow
 
-## Setup
+## Quick start
 
-1. Install dependencies with `pnpm install`
-2. Copy `.env.example` to `.env`
-3. Start the app with `pnpm dev`
+Recommended fresh-clone path:
+
+1. `corepack enable`
+2. `pnpm install`
+3. `pnpm check:env`
+4. Copy `.env.example` to `.env`
+5. `pnpm dev`
+
+Build verification:
+
+```bash
+pnpm build
+pnpm test
+```
+
+## Fixture mode
+
+QuickSite can run without live parcel credentials by using fixture mode:
+
+```bash
+VITE_USE_PARCEL_FIXTURES=true pnpm dev
+```
+
+This loads a local Rampart parcel fixture so UI work can continue even when the parcel proxy is offline.
 
 ## Environment
 
-The app expects a server-side Regrid proxy:
+Typical local values:
 
 ```env
-VITE_REGRID_PROXY_BASE_URL=http://localhost:8787/regrid/
-VITE_DEFAULT_CENTER_LNG=-104.871
-VITE_DEFAULT_CENTER_LAT=38.930
-VITE_DEFAULT_ZOOM=16
+VITE_USE_PARCEL_FIXTURES=false
+VITE_REGRID_PROXY_BASE_URL=/regrid/
+VITE_DEFAULT_CENTER_LNG=-104.897322
+VITE_DEFAULT_CENTER_LAT=38.878370
+VITE_DEFAULT_ZOOM=17
 ```
 
-Do not expose Regrid credentials in browser code.
+Do not expose provider or Supabase secrets in browser code.
 
 ## Sprint Status
 
@@ -40,4 +62,4 @@ RackNerd/Nginx deployment assets live in:
 - [deploy/nginx/siteplan.gomil.com.conf](C:\Users\Costandine_T\Downloads\siteplan\deploy\nginx\siteplan.gomil.com.conf)
 - [deploy/certbot/issue-siteplan-cert.sh](C:\Users\Costandine_T\Downloads\siteplan\deploy\certbot\issue-siteplan-cert.sh)
 
-The parcel search flow also requires the local Regrid proxy service in [server/regridProxy.mjs](C:\Users\Costandine_T\Downloads\siteplan\server\regridProxy.mjs).
+The parcel search flow uses the local open parcel proxy in [server/openParcelProxy.mjs](C:\Users\Costandine_T\Downloads\siteplan\server\openParcelProxy.mjs), with [server/regridProxy.mjs](C:\Users\Costandine_T\Downloads\siteplan\server\regridProxy.mjs) retained as the compatibility entrypoint for the existing systemd service name.
