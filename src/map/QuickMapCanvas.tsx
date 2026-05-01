@@ -22,6 +22,9 @@ export function QuickMapCanvas() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const modeRef = useRef(useDrawingStore.getState().mode);
   const layersRef = useRef<ReturnType<typeof buildMapLayers>>([]);
+  const suppressClickRef = useRef(false);
+  const draggingVertexRef = useRef<{ drawingId: string; pointIndex: number } | null>(null);
+  const drawingDimensionRef = useRef<{ start: { lng: number; lat: number } } | null>(null);
   const {
     basemap,
     selectedParcel,
@@ -38,8 +41,10 @@ export function QuickMapCanvas() {
     selectedDrawingId,
     mode,
     addPoint,
+    setActivePoints,
     completeActiveFeature,
     selectDrawing,
+    updateDrawingPoint,
   } = useDrawingStore();
 
   useEffect(() => {
@@ -81,7 +86,120 @@ export function QuickMapCanvas() {
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "bottom-right");
     map.doubleClickZoom.disable();
 
+    const setCursor = (cursor: string) => {
+      map.getCanvas().style.cursor = cursor;
+    };
+
+    const finishPointerInteraction = () => {
+      map.dragPan.enable();
+      draggingVertexRef.current = null;
+      drawingDimensionRef.current = null;
+      setCursor("");
+    };
+
+    const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
+      if (draggingVertexRef.current) {
+        const { drawingId, pointIndex } = draggingVertexRef.current;
+        updateDrawingPoint(drawingId, pointIndex, {
+          lng: event.lngLat.lng,
+          lat: event.lngLat.lat,
+        });
+        return;
+      }
+
+      if (drawingDimensionRef.current) {
+        const { start } = drawingDimensionRef.current;
+        setActivePoints([
+          start,
+          {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          },
+        ]);
+      }
+    };
+
+    const handleMouseUp = (event: maplibregl.MapMouseEvent) => {
+      if (draggingVertexRef.current) {
+        suppressClickRef.current = true;
+        finishPointerInteraction();
+        return;
+      }
+
+      if (drawingDimensionRef.current) {
+        const { start } = drawingDimensionRef.current;
+        setActivePoints([
+          start,
+          {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          },
+        ]);
+        suppressClickRef.current = true;
+        completeActiveFeature();
+        finishPointerInteraction();
+      }
+    };
+
+    map.on("mousemove", handleMouseMove);
+    map.on("mouseup", handleMouseUp);
+
+    map.on("mouseenter", "drawing-vertices", () => {
+      if (modeRef.current === "select") {
+        setCursor("move");
+      }
+    });
+    map.on("mouseleave", "drawing-vertices", () => {
+      if (!draggingVertexRef.current && !drawingDimensionRef.current) {
+        setCursor("");
+      }
+    });
+
+    map.on("mousedown", (event) => {
+      const vertexFeature = map.queryRenderedFeatures(event.point, {
+        layers: ["drawing-vertices"],
+      })[0];
+
+      if (modeRef.current === "select" && vertexFeature?.properties) {
+        const drawingId = vertexFeature.properties.id;
+        const pointIndex = Number(vertexFeature.properties.pointIndex);
+        if (typeof drawingId === "string" && Number.isFinite(pointIndex)) {
+          draggingVertexRef.current = { drawingId, pointIndex };
+          selectDrawing(drawingId);
+          map.dragPan.disable();
+          setCursor("grabbing");
+          return;
+        }
+      }
+
+      if (modeRef.current === "dimension-line") {
+        drawingDimensionRef.current = {
+          start: {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          },
+        };
+        map.dragPan.disable();
+        setActivePoints([
+          {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          },
+          {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          },
+        ]);
+        setCursor("crosshair");
+      }
+    });
+
     map.on("click", (event) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
+
       const interactiveLayers = ["drawing-polygons-fill", "drawing-lines", "drawing-labels"];
       const feature = map.queryRenderedFeatures(event.point, { layers: interactiveLayers })[0];
       const featureId = feature?.properties?.id;
@@ -133,6 +251,10 @@ export function QuickMapCanvas() {
         return;
       }
 
+      if (modeRef.current === "dimension-line") {
+        return;
+      }
+
       addPoint({ lng: event.lngLat.lng, lat: event.lngLat.lat });
     });
 
@@ -146,6 +268,8 @@ export function QuickMapCanvas() {
     mapRef.current = map;
 
     return () => {
+      map.off("mousemove", handleMouseMove);
+      map.off("mouseup", handleMouseUp);
       map.remove();
       mapRef.current = null;
     };

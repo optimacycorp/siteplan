@@ -28,7 +28,9 @@ export function PropertiesPanel() {
             onChange={(event) => renameSelected(event.target.value)}
             value={selectedDrawing.label}
           />
-          <p className="muted">{selectedDrawing.type} • {selectedDrawing.points.length} point(s)</p>
+          <p className="muted">
+            {selectedDrawing.type} | {selectedDrawing.points.length} point(s)
+          </p>
         </div>
       ) : null}
       {drawings.map((feature) => (
@@ -39,7 +41,9 @@ export function PropertiesPanel() {
           type="button"
         >
           <strong>{feature.label}</strong>
-          <p className="muted">{feature.type} • {feature.points.length} point(s)</p>
+          <p className="muted">
+            {feature.type} | {feature.points.length} point(s)
+          </p>
         </button>
       ))}
     </section>

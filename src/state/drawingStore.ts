@@ -9,12 +9,14 @@ type DrawingState = {
   selectedDrawingId: string | null;
   setMode: (mode: DrawingMode) => void;
   addPoint: (point: LngLatPoint) => void;
+  setActivePoints: (points: LngLatPoint[]) => void;
   completeActiveFeature: () => void;
   undoActivePoint: () => void;
   clearActiveFeature: () => void;
   deleteSelected: () => void;
   selectDrawing: (id: string | null) => void;
   renameSelected: (label: string) => void;
+  updateDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
 };
 
 const canComplete = (mode: DrawingMode, points: LngLatPoint[]) => {
@@ -47,6 +49,7 @@ export const useDrawingStore = create<DrawingState>()(
         if (mode === "select") return;
         set({ activePoints: [...activePoints, point] });
       },
+      setActivePoints: (activePoints) => set({ activePoints }),
       completeActiveFeature: () => {
         const { mode, activePoints, drawings } = get();
         if (mode === "select" || !canComplete(mode, activePoints)) return;
@@ -78,6 +81,19 @@ export const useDrawingStore = create<DrawingState>()(
             drawing.id === state.selectedDrawingId
               ? { ...drawing, label: label.trim() || drawing.label }
               : drawing,
+          ),
+        })),
+      updateDrawingPoint: (drawingId, pointIndex, point) =>
+        set((state) => ({
+          drawings: state.drawings.map((drawing) =>
+            drawing.id !== drawingId
+              ? drawing
+              : {
+                  ...drawing,
+                  points: drawing.points.map((existingPoint, index) =>
+                    index === pointIndex ? point : existingPoint,
+                  ),
+                },
           ),
         })),
     }),

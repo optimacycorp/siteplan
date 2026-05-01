@@ -24,6 +24,8 @@ const APP_LAYER_ORDER = [
   "drawing-polygons-outline",
   "drawing-lines",
   "active-sketch",
+  "active-sketch-vertices",
+  "drawing-vertices",
   "drawing-labels",
 ] as const;
 

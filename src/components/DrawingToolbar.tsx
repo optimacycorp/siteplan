@@ -35,7 +35,10 @@ export function DrawingToolbar() {
         />
       ) : null}
       {selectedParcel ? (
-        <p className="muted">Click to place points. Double-click or use Complete to finish the current feature.</p>
+        <p className="muted">
+          Click to place points. Drag dimension lines in one motion. In Select mode, drag blue
+          vertices to refine existing geometry.
+        </p>
       ) : null}
       {selectedParcel && mode !== "select" ? (
         <InlineNotice tone="info">Current tool: {tools.find((tool) => tool.mode === mode)?.label || "Draw"}</InlineNotice>

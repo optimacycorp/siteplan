@@ -99,6 +99,27 @@ export function buildMapLayers(input: {
         }) as GeoJSON.Feature,
     );
 
+  const selectedDrawing =
+    input.drawings.find((drawing) => drawing.id === input.selectedDrawingId) ?? null;
+
+  const selectedDrawingVertices = selectedDrawing
+    ? selectedDrawing.points.map(
+        (point, index) =>
+          ({
+            type: "Feature",
+            properties: {
+              id: selectedDrawing.id,
+              pointIndex: index,
+              label: selectedDrawing.label,
+            },
+            geometry: {
+              type: "Point",
+              coordinates: [point.lng, point.lat],
+            },
+          }) as GeoJSON.Feature,
+      )
+    : [];
+
   const sketchFeatures =
     (input.activePoints?.length ?? 0) >= 1
       ? [
@@ -111,6 +132,21 @@ export function buildMapLayers(input: {
             },
           } as GeoJSON.Feature,
         ]
+      : [];
+
+  const activeSketchVertices =
+    (input.activePoints?.length ?? 0) >= 1
+      ? (input.activePoints ?? []).map(
+          (point, index) =>
+            ({
+              type: "Feature",
+              properties: { id: "active-sketch", pointIndex: index },
+              geometry: {
+                type: "Point",
+                coordinates: [point.lng, point.lat],
+              },
+            }) as GeoJSON.Feature,
+        )
       : [];
 
   return [
@@ -196,6 +232,23 @@ export function buildMapLayers(input: {
         paint: { "text-color": "#111827" },
       },
       visible: input.layerVisibility.labels,
+      interactive: true,
+    },
+    {
+      id: "drawing-vertices",
+      sourceId: "drawing-vertices",
+      source: { type: "geojson", data: fc(selectedDrawingVertices) },
+      layer: {
+        type: "circle",
+        paint: {
+          "circle-radius": 6,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#2563eb",
+          "circle-stroke-width": 2,
+        },
+      },
+      visible: input.layerVisibility.drawings,
+      interactive: true,
     },
     {
       id: "active-sketch",
@@ -204,6 +257,21 @@ export function buildMapLayers(input: {
       layer: {
         type: "line",
         paint: { "line-color": "#2563eb", "line-width": 2, "line-dasharray": [2, 2] },
+      },
+      visible: true,
+    },
+    {
+      id: "active-sketch-vertices",
+      sourceId: "active-sketch-vertices",
+      source: { type: "geojson", data: fc(activeSketchVertices) },
+      layer: {
+        type: "circle",
+        paint: {
+          "circle-radius": 5,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#2563eb",
+          "circle-stroke-width": 2,
+        },
       },
       visible: true,
     },
