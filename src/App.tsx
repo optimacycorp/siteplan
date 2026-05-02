@@ -5,6 +5,7 @@ import { DrawingToolbar } from "./components/DrawingToolbar";
 import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
 import { PropertiesPanel } from "./components/PropertiesPanel";
+import { PrintPlanSheet } from "./components/PrintPlanSheet";
 import { SelectedParcelCard } from "./components/SelectedParcelCard";
 import { WorkflowSteps } from "./components/WorkflowSteps";
 import { QuickMapCanvas } from "./map/QuickMapCanvas";
@@ -34,7 +35,12 @@ export function App() {
           <LayerPanel />
         </>
       }
-      map={<QuickMapCanvas />}
+      map={
+        <>
+          <QuickMapCanvas />
+          <PrintPlanSheet />
+        </>
+      }
       right={
         <>
           <ParcelSummary />
