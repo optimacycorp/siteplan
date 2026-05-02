@@ -1,11 +1,14 @@
 import { useDrawingStore } from "../state/drawingStore";
 import { EmptyState } from "./EmptyState";
+import { InlineNotice } from "./InlineNotice";
 
 export function PropertiesPanel() {
   const drawings = useDrawingStore((state) => state.drawings);
   const selectedDrawingId = useDrawingStore((state) => state.selectedDrawingId);
+  const selectedVertex = useDrawingStore((state) => state.selectedVertex);
   const selectDrawing = useDrawingStore((state) => state.selectDrawing);
   const renameSelected = useDrawingStore((state) => state.renameSelected);
+  const deleteSelectedVertex = useDrawingStore((state) => state.deleteSelectedVertex);
   const selectedDrawing = drawings.find((feature) => feature.id === selectedDrawingId) ?? null;
 
   return (
@@ -31,6 +34,21 @@ export function PropertiesPanel() {
           <p className="muted">
             {selectedDrawing.type} | {selectedDrawing.points.length} point(s)
           </p>
+          {selectedVertex?.drawingId === selectedDrawing.id ? (
+            <>
+              <InlineNotice tone="info">
+                Vertex {selectedVertex.pointIndex + 1} selected. Drag it on the map to reshape the
+                feature, or remove it below.
+              </InlineNotice>
+              <div className="card-actions">
+                <button className="secondary-button" onClick={deleteSelectedVertex} type="button">
+                  Delete selected vertex
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="muted">Select a vertex or midpoint on the map to edit the shape.</p>
+          )}
         </div>
       ) : null}
       {drawings.map((feature) => (

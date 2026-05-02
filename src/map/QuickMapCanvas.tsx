@@ -44,12 +44,15 @@ export function QuickMapCanvas() {
     drawings,
     activePoints,
     selectedDrawingId,
+    selectedVertex,
     mode,
     addPoint,
     setActivePoints,
     completeActiveFeature,
     selectDrawing,
+    selectVertex,
     updateDrawingPoint,
+    insertDrawingPoint,
   } = useDrawingStore();
 
   useEffect(() => {
@@ -76,9 +79,10 @@ export function QuickMapCanvas() {
         drawings,
         activePoints,
         selectedDrawingId,
+        selectedVertex,
         layerVisibility,
       }),
-    [selectedParcel, neighbors, drawings, activePoints, selectedDrawingId, layerVisibility],
+    [selectedParcel, neighbors, drawings, activePoints, selectedDrawingId, selectedVertex, layerVisibility],
   );
 
   useEffect(() => {
@@ -213,6 +217,16 @@ export function QuickMapCanvas() {
         setCursor("");
       }
     });
+    map.on("mouseenter", "drawing-midpoints", () => {
+      if (modeRef.current === "select") {
+        setCursor("copy");
+      }
+    });
+    map.on("mouseleave", "drawing-midpoints", () => {
+      if (!draggingVertexRef.current && !drawingDimensionRef.current) {
+        setCursor("");
+      }
+    });
 
     map.on("mousedown", (event) => {
       const vertexFeature = map.queryRenderedFeatures(event.point, {
@@ -225,8 +239,26 @@ export function QuickMapCanvas() {
         if (typeof drawingId === "string" && Number.isFinite(pointIndex)) {
           draggingVertexRef.current = { drawingId, pointIndex };
           selectDrawing(drawingId);
+          selectVertex({ drawingId, pointIndex });
           map.dragPan.disable();
           setCursor("grabbing");
+          return;
+        }
+      }
+
+      const midpointFeature = map.queryRenderedFeatures(event.point, {
+        layers: ["drawing-midpoints"],
+      })[0];
+
+      if (modeRef.current === "select" && midpointFeature?.properties) {
+        const drawingId = midpointFeature.properties.id;
+        const insertIndex = Number(midpointFeature.properties.insertIndex);
+        if (typeof drawingId === "string" && Number.isFinite(insertIndex)) {
+          insertDrawingPoint(drawingId, insertIndex, {
+            lng: event.lngLat.lng,
+            lat: event.lngLat.lat,
+          });
+          suppressClickRef.current = true;
           return;
         }
       }
@@ -280,6 +312,7 @@ export function QuickMapCanvas() {
 
       if (typeof featureId === "string") {
         selectDrawing(featureId);
+        selectVertex(null);
         if (modeRef.current === "select") {
           return;
         }
@@ -287,6 +320,7 @@ export function QuickMapCanvas() {
 
       if (modeRef.current === "select") {
         selectDrawing(null);
+        selectVertex(null);
         void (async () => {
           setSelectedParcelLoading(true);
           try {
@@ -385,5 +419,21 @@ export function QuickMapCanvas() {
     });
   }, [selectedParcel?.llUuid, selectedParcel?.centroid, selectedParcel?.geometry]);
 
-  return <div className="map-canvas" ref={containerRef} />;
+  const mapHint =
+    mode === "select"
+      ? selectedDrawingId
+        ? "Drag blue vertices to reshape the selection. Click amber midpoint handles to insert a new vertex."
+        : "Click a parcel to select it, or click a drawing to edit it."
+      : mode === "structure-polygon"
+        ? "Click to place custom corners, or click-drag to drop a rectangle."
+        : mode === "dimension-line"
+          ? "Click-drag to place a dimension line in one motion."
+          : "Click to place points. Double-click or use Complete to finish.";
+
+  return (
+    <>
+      <div className="map-canvas" ref={containerRef} />
+      <div className="map-hint-overlay">{mapHint}</div>
+    </>
+  );
 }

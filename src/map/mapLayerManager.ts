@@ -26,6 +26,7 @@ const APP_LAYER_ORDER = [
   "active-sketch",
   "active-sketch-vertices",
   "drawing-vertices",
+  "drawing-midpoints",
   "drawing-labels",
 ] as const;
 

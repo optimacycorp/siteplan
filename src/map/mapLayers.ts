@@ -13,12 +13,20 @@ function polygonCoordinates(points: DrawingFeature["points"]) {
   return [[...ring, [firstLng, firstLat]]];
 }
 
+function midpoint(a: DrawingFeature["points"][number], b: DrawingFeature["points"][number]) {
+  return {
+    lng: (a.lng + b.lng) / 2,
+    lat: (a.lat + b.lat) / 2,
+  };
+}
+
 export function buildMapLayers(input: {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   drawings: DrawingFeature[];
   activePoints?: DrawingFeature["points"];
   selectedDrawingId?: string | null;
+  selectedVertex?: { drawingId: string; pointIndex: number } | null;
   layerVisibility: Record<string, boolean>;
 }): MapLayerDescriptor[] {
   const parcelFeatures = input.selectedParcel?.geometry
@@ -111,6 +119,9 @@ export function buildMapLayers(input: {
               id: selectedDrawing.id,
               pointIndex: index,
               label: selectedDrawing.label,
+              selected:
+                input.selectedVertex?.drawingId === selectedDrawing.id &&
+                input.selectedVertex?.pointIndex === index,
             },
             geometry: {
               type: "Point",
@@ -118,6 +129,34 @@ export function buildMapLayers(input: {
             },
           }) as GeoJSON.Feature,
       )
+    : [];
+
+  const selectedDrawingMidpoints = selectedDrawing
+    ? selectedDrawing.points.flatMap((point, index, points) => {
+        const nextIndex =
+          selectedDrawing.type === "structure-polygon"
+            ? (index + 1) % points.length
+            : index + 1;
+        const nextPoint = points[nextIndex];
+        if (!nextPoint || (selectedDrawing.type !== "structure-polygon" && index === points.length - 1)) {
+          return [];
+        }
+        const mid = midpoint(point, nextPoint);
+        return [
+          {
+            type: "Feature",
+            properties: {
+              id: selectedDrawing.id,
+              insertIndex: index + 1,
+              label: selectedDrawing.label,
+            },
+            geometry: {
+              type: "Point",
+              coordinates: [mid.lng, mid.lat],
+            },
+          } as GeoJSON.Feature,
+        ];
+      })
     : [];
 
   const sketchFeatures =
@@ -241,9 +280,25 @@ export function buildMapLayers(input: {
       layer: {
         type: "circle",
         paint: {
-          "circle-radius": 6,
-          "circle-color": "#ffffff",
-          "circle-stroke-color": "#2563eb",
+          "circle-radius": ["case", ["boolean", ["get", "selected"], false], 8, 6],
+          "circle-color": ["case", ["boolean", ["get", "selected"], false], "#f59e0b", "#ffffff"],
+          "circle-stroke-color": ["case", ["boolean", ["get", "selected"], false], "#b45309", "#2563eb"],
+          "circle-stroke-width": ["case", ["boolean", ["get", "selected"], false], 3, 2],
+        },
+      },
+      visible: input.layerVisibility.drawings,
+      interactive: true,
+    },
+    {
+      id: "drawing-midpoints",
+      sourceId: "drawing-midpoints",
+      source: { type: "geojson", data: fc(selectedDrawingMidpoints) },
+      layer: {
+        type: "circle",
+        paint: {
+          "circle-radius": 4,
+          "circle-color": "#f8fafc",
+          "circle-stroke-color": "#f59e0b",
           "circle-stroke-width": 2,
         },
       },

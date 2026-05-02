@@ -7,6 +7,7 @@ type DrawingState = {
   activePoints: LngLatPoint[];
   drawings: DrawingFeature[];
   selectedDrawingId: string | null;
+  selectedVertex: { drawingId: string; pointIndex: number } | null;
   setMode: (mode: DrawingMode) => void;
   addPoint: (point: LngLatPoint) => void;
   setActivePoints: (points: LngLatPoint[]) => void;
@@ -16,7 +17,10 @@ type DrawingState = {
   deleteSelected: () => void;
   selectDrawing: (id: string | null) => void;
   renameSelected: (label: string) => void;
+  selectVertex: (vertex: { drawingId: string; pointIndex: number } | null) => void;
   updateDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
+  insertDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
+  deleteSelectedVertex: () => void;
 };
 
 const canComplete = (mode: DrawingMode, points: LngLatPoint[]) => {
@@ -43,7 +47,8 @@ export const useDrawingStore = create<DrawingState>()(
       activePoints: [],
       drawings: [],
       selectedDrawingId: null,
-      setMode: (mode) => set({ mode, activePoints: [] }),
+      selectedVertex: null,
+      setMode: (mode) => set({ mode, activePoints: [], selectedVertex: null }),
       addPoint: (point) => {
         const { mode, activePoints } = get();
         if (mode === "select") return;
@@ -73,8 +78,14 @@ export const useDrawingStore = create<DrawingState>()(
         set((state) => ({
           drawings: state.drawings.filter((drawing) => drawing.id !== state.selectedDrawingId),
           selectedDrawingId: null,
+          selectedVertex: null,
         })),
-      selectDrawing: (selectedDrawingId) => set({ selectedDrawingId }),
+      selectDrawing: (selectedDrawingId) =>
+        set((state) => ({
+          selectedDrawingId,
+          selectedVertex:
+            state.selectedVertex?.drawingId === selectedDrawingId ? state.selectedVertex : null,
+        })),
       renameSelected: (label) =>
         set((state) => ({
           drawings: state.drawings.map((drawing) =>
@@ -83,6 +94,7 @@ export const useDrawingStore = create<DrawingState>()(
               : drawing,
           ),
         })),
+      selectVertex: (selectedVertex) => set({ selectedVertex }),
       updateDrawingPoint: (drawingId, pointIndex, point) =>
         set((state) => ({
           drawings: state.drawings.map((drawing) =>
@@ -96,6 +108,50 @@ export const useDrawingStore = create<DrawingState>()(
                 },
           ),
         })),
+      insertDrawingPoint: (drawingId, pointIndex, point) =>
+        set((state) => ({
+          drawings: state.drawings.map((drawing) =>
+            drawing.id !== drawingId
+              ? drawing
+              : {
+                  ...drawing,
+                  points: [
+                    ...drawing.points.slice(0, pointIndex),
+                    point,
+                    ...drawing.points.slice(pointIndex),
+                  ],
+                },
+          ),
+          selectedDrawingId: drawingId,
+          selectedVertex: { drawingId, pointIndex },
+        })),
+      deleteSelectedVertex: () => {
+        const { selectedVertex, drawings } = get();
+        if (!selectedVertex) return;
+        const drawing = drawings.find((entry) => entry.id === selectedVertex.drawingId);
+        if (!drawing) return;
+
+        const minimumPoints =
+          drawing.type === "structure-polygon"
+            ? 3
+            : drawing.type === "label-point"
+              ? 1
+              : 2;
+
+        if (drawing.points.length <= minimumPoints) return;
+
+        set((state) => ({
+          drawings: state.drawings.map((entry) =>
+            entry.id !== selectedVertex.drawingId
+              ? entry
+              : {
+                  ...entry,
+                  points: entry.points.filter((_, index) => index !== selectedVertex.pointIndex),
+                },
+          ),
+          selectedVertex: null,
+        }));
+      },
     }),
     {
       name: "optimacy-quicksite-drawings",
