@@ -14,9 +14,11 @@ type QuickSiteState = {
   mapView: { center: [number, number]; zoom: number };
   exportMeta: {
     projectTitle: string;
+    projectNumber: string;
     preparedFor: string;
     preparedBy: string;
     sheetNumber: string;
+    revision: string;
     notes: string;
   };
   layerVisibility: Record<string, boolean>;
@@ -33,9 +35,11 @@ type QuickSiteState = {
   setExportMeta: (
     patch: Partial<{
       projectTitle: string;
+      projectNumber: string;
       preparedFor: string;
       preparedBy: string;
       sheetNumber: string;
+      revision: string;
       notes: string;
     }>,
   ) => void;
@@ -57,9 +61,11 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   },
   exportMeta: {
     projectTitle: "Conceptual Site Plan Exhibit",
+    projectNumber: "",
     preparedFor: "",
     preparedBy: "Optimacy QuickSite",
     sheetNumber: "Sheet 1",
+    revision: "A",
     notes:
       "Conceptual planning exhibit only. Not a boundary survey, legal description, or construction staking document.",
   },

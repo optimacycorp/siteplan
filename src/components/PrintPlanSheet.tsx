@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useDrawingStore } from "../state/drawingStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
+import { distanceMeters, formatBearing, formatFeetLabel } from "../map/mapUtils";
 import { PrintScaleBar } from "./PrintScaleBar";
 
 function formatFeatureLabel(type: string, count: number) {
@@ -38,6 +39,40 @@ export function PrintPlanSheet() {
     [],
   );
 
+  const boundaryTables = useMemo(
+    () =>
+      drawings
+        .filter((drawing) => drawing.type !== "label-point" && drawing.points.length >= 2)
+        .map((drawing) => {
+          const segments = drawing.points.flatMap((point, index, points) => {
+            const nextIndex =
+              drawing.type === "structure-polygon" ? (index + 1) % points.length : index + 1;
+            const nextPoint = points[nextIndex];
+            if (!nextPoint || (drawing.type !== "structure-polygon" && index === points.length - 1)) {
+              return [];
+            }
+
+            return [
+              {
+                label: `${index + 1}`,
+                bearing: formatBearing(point.lng, point.lat, nextPoint.lng, nextPoint.lat),
+                distance: formatFeetLabel(
+                  distanceMeters(point.lng, point.lat, nextPoint.lng, nextPoint.lat),
+                ),
+              },
+            ];
+          });
+
+          return {
+            id: drawing.id,
+            label: drawing.label,
+            segments,
+          };
+        })
+        .filter((table) => table.segments.length > 0),
+    [drawings],
+  );
+
   return (
     <div className="print-sheet">
       <div className="print-card print-card-header">
@@ -59,6 +94,10 @@ export function PrintPlanSheet() {
           <div>
             <span>APN</span>
             <strong>{parcel?.apn || "-"}</strong>
+          </div>
+          <div>
+            <span>Project no.</span>
+            <strong>{exportMeta.projectNumber || "-"}</strong>
           </div>
           <div>
             <span>Owner</span>
@@ -92,8 +131,41 @@ export function PrintPlanSheet() {
             <span>Sheet</span>
             <strong>{exportMeta.sheetNumber || "-"}</strong>
           </div>
+          <div>
+            <span>Revision</span>
+            <strong>{exportMeta.revision || "-"}</strong>
+          </div>
         </div>
       </div>
+
+      {boundaryTables.length ? (
+        <div className="print-card print-card-boundary">
+          <div className="print-section-title">Boundary / Line Table</div>
+          {boundaryTables.map((table) => (
+            <div className="print-boundary-table" key={table.id}>
+              <strong>{table.label}</strong>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Line</th>
+                    <th>Bearing</th>
+                    <th>Distance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.segments.map((segment) => (
+                    <tr key={segment.label}>
+                      <td>{segment.label}</td>
+                      <td>{segment.bearing}</td>
+                      <td>{segment.distance}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="print-card print-card-footer">
         <div>

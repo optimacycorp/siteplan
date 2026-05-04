@@ -76,3 +76,39 @@ export function formatAreaLabel(squareMeters: number) {
   }
   return `${squareFeet.toFixed(0)} sq ft`;
 }
+
+export function formatBearing(
+  fromLng: number,
+  fromLat: number,
+  toLng: number,
+  toLat: number,
+) {
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+  const deltaLng = toRadians(toLng - fromLng);
+
+  const y = Math.sin(deltaLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+  const azimuth = (Math.atan2(y, x) * 180) / Math.PI;
+  const normalized = (azimuth + 360) % 360;
+
+  const quadrant =
+    normalized <= 90
+      ? { ns: "N", angle: normalized, ew: "E" }
+      : normalized <= 180
+        ? { ns: "S", angle: 180 - normalized, ew: "E" }
+        : normalized <= 270
+          ? { ns: "S", angle: normalized - 180, ew: "W" }
+          : { ns: "N", angle: 360 - normalized, ew: "W" };
+
+  const degrees = Math.floor(quadrant.angle);
+  const minutesFloat = (quadrant.angle - degrees) * 60;
+  const minutes = Math.floor(minutesFloat);
+  const seconds = Math.round((minutesFloat - minutes) * 60);
+
+  return `${quadrant.ns} ${degrees.toString().padStart(2, "0")}°${minutes
+    .toString()
+    .padStart(2, "0")}'${seconds.toString().padStart(2, "0")}" ${quadrant.ew}`;
+}

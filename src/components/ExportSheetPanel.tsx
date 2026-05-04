@@ -21,6 +21,16 @@ export function ExportSheetPanel() {
         onChange={(event) => setExportMeta({ projectTitle: event.target.value })}
       />
 
+      <label className="field-label" htmlFor="export-project-number">
+        Project number
+      </label>
+      <input
+        className="search-input"
+        id="export-project-number"
+        value={exportMeta.projectNumber}
+        onChange={(event) => setExportMeta({ projectNumber: event.target.value })}
+      />
+
       <label className="field-label" htmlFor="export-prepared-for">
         Prepared for
       </label>
@@ -49,6 +59,16 @@ export function ExportSheetPanel() {
         id="export-sheet-number"
         value={exportMeta.sheetNumber}
         onChange={(event) => setExportMeta({ sheetNumber: event.target.value })}
+      />
+
+      <label className="field-label" htmlFor="export-revision">
+        Revision
+      </label>
+      <input
+        className="search-input"
+        id="export-revision"
+        value={exportMeta.revision}
+        onChange={(event) => setExportMeta({ revision: event.target.value })}
       />
 
       <label className="field-label" htmlFor="export-notes">

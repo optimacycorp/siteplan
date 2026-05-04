@@ -457,6 +457,40 @@ select {
   gap: 0.85rem 1rem;
 }
 
+.print-card-boundary {
+  top: 18.75rem;
+  right: 1rem;
+  width: min(34rem, 44%);
+  max-height: 20rem;
+  overflow: auto;
+  padding: 0.9rem 1rem;
+}
+
+.print-boundary-table {
+  margin-top: 0.7rem;
+}
+
+.print-boundary-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.35rem;
+  font-size: 0.76rem;
+}
+
+.print-boundary-table th,
+.print-boundary-table td {
+  padding: 0.28rem 0.35rem;
+  border-bottom: 1px solid rgba(23, 50, 75, 0.12);
+  text-align: left;
+}
+
+.print-boundary-table th {
+  color: #36506b;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .print-meta-grid span {
   display: block;
   margin-bottom: 0.2rem;
