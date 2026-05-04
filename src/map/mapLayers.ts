@@ -27,6 +27,25 @@ function midpoint(a: DrawingFeature["points"][number], b: DrawingFeature["points
   };
 }
 
+function buildSegmentLabelFeature(
+  id: string,
+  from: DrawingFeature["points"][number],
+  to: DrawingFeature["points"][number],
+) {
+  const mid = midpoint(from, to);
+  return {
+    type: "Feature",
+    properties: {
+      id,
+      label: formatFeetLabel(distanceMeters(from.lng, from.lat, to.lng, to.lat)),
+    },
+    geometry: {
+      type: "Point",
+      coordinates: [mid.lng, mid.lat],
+    },
+  } as GeoJSON.Feature;
+}
+
 export function buildMapLayers(input: {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
@@ -107,31 +126,24 @@ export function buildMapLayers(input: {
         drawing.type !== "structure-polygon" &&
         drawing.points.length >= 2,
     )
-    .flatMap((drawing) => {
-      const start = drawing.points[0];
-      const end = drawing.points[drawing.points.length - 1];
-      const mid = midpoint(start, end);
-      const label = formatFeetLabel(distanceMeters(start.lng, start.lat, end.lng, end.lat));
-      return [
-        {
-          type: "Feature",
-          properties: {
-            id: `${drawing.id}-measurement`,
-            label,
-          },
-          geometry: {
-            type: "Point",
-            coordinates: [mid.lng, mid.lat],
-          },
-        } as GeoJSON.Feature,
-      ];
-    });
+    .flatMap((drawing) =>
+      drawing.points.slice(0, -1).map((point, index) =>
+        buildSegmentLabelFeature(`${drawing.id}-measurement-${index}`, point, drawing.points[index + 1]),
+      ),
+    );
 
   const polygonMeasurementLabels = input.drawings
     .filter((drawing) => drawing.type === "structure-polygon" && drawing.points.length >= 3)
     .flatMap((drawing) => {
       const centroid = polygonCentroid(drawing.points);
-      if (!centroid) return [];
+      const edgeLabels = drawing.points.map((point, index, points) =>
+        buildSegmentLabelFeature(
+          `${drawing.id}-edge-${index}`,
+          point,
+          points[(index + 1) % points.length],
+        ),
+      );
+      if (!centroid) return edgeLabels;
       const label = formatAreaLabel(polygonAreaSquareMeters(drawing.points));
       return [
         {
@@ -145,6 +157,7 @@ export function buildMapLayers(input: {
             coordinates: [centroid.lng, centroid.lat],
           },
         } as GeoJSON.Feature,
+        ...edgeLabels,
       ];
     });
 

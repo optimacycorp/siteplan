@@ -16,6 +16,7 @@ function formatFeatureLabel(type: string, count: number) {
 
 export function PrintPlanSheet() {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
+  const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const drawings = useDrawingStore((state) => state.drawings);
 
   const drawingSummary = useMemo(() => {
@@ -42,7 +43,7 @@ export function PrintPlanSheet() {
       <div className="print-card print-card-header">
         <div>
           <div className="print-kicker">Optimacy QuickSite</div>
-          <h1>Conceptual Site Plan Exhibit</h1>
+          <h1>{exportMeta.projectTitle || "Conceptual Site Plan Exhibit"}</h1>
           <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
         </div>
         <div className="print-card-header-tools">
@@ -79,6 +80,18 @@ export function PrintPlanSheet() {
             <span>Printed</span>
             <strong>{printedAt}</strong>
           </div>
+          <div>
+            <span>Prepared for</span>
+            <strong>{exportMeta.preparedFor || "-"}</strong>
+          </div>
+          <div>
+            <span>Prepared by</span>
+            <strong>{exportMeta.preparedBy || "-"}</strong>
+          </div>
+          <div>
+            <span>Sheet</span>
+            <strong>{exportMeta.sheetNumber || "-"}</strong>
+          </div>
         </div>
       </div>
 
@@ -89,7 +102,7 @@ export function PrintPlanSheet() {
         </div>
         <div>
           <div className="print-section-title">Exhibit Notes</div>
-          <p>Conceptual planning exhibit only. Not a boundary survey, legal description, or construction staking document.</p>
+          <p>{exportMeta.notes || "Conceptual planning exhibit only."}</p>
         </div>
         <div>
           <div className="print-section-title">Source</div>

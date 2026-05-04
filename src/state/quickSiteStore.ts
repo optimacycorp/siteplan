@@ -12,6 +12,13 @@ type QuickSiteState = {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   mapView: { center: [number, number]; zoom: number };
+  exportMeta: {
+    projectTitle: string;
+    preparedFor: string;
+    preparedBy: string;
+    sheetNumber: string;
+    notes: string;
+  };
   layerVisibility: Record<string, boolean>;
   setBasemap: (basemap: BasemapKey) => void;
   setSearchText: (searchText: string) => void;
@@ -23,6 +30,15 @@ type QuickSiteState = {
   clearSelectedParcel: () => void;
   setNeighbors: (neighbors: ParcelNeighbor[]) => void;
   setMapView: (mapView: { center: [number, number]; zoom: number }) => void;
+  setExportMeta: (
+    patch: Partial<{
+      projectTitle: string;
+      preparedFor: string;
+      preparedBy: string;
+      sheetNumber: string;
+      notes: string;
+    }>,
+  ) => void;
   toggleLayer: (layer: string) => void;
 };
 
@@ -38,6 +54,14 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   mapView: {
     center: [-104.897322, 38.87837],
     zoom: 17,
+  },
+  exportMeta: {
+    projectTitle: "Conceptual Site Plan Exhibit",
+    preparedFor: "",
+    preparedBy: "Optimacy QuickSite",
+    sheetNumber: "Sheet 1",
+    notes:
+      "Conceptual planning exhibit only. Not a boundary survey, legal description, or construction staking document.",
   },
   layerVisibility: {
     parcel: true,
@@ -57,6 +81,13 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   clearSelectedParcel: () => set({ selectedParcel: null, neighbors: [] }),
   setNeighbors: (neighbors) => set({ neighbors }),
   setMapView: (mapView) => set({ mapView }),
+  setExportMeta: (patch) =>
+    set((state) => ({
+      exportMeta: {
+        ...state.exportMeta,
+        ...patch,
+      },
+    })),
   toggleLayer: (layer) =>
     set((state) => ({
       layerVisibility: {

@@ -2,6 +2,7 @@ import { AddressSearch } from "./components/AddressSearch";
 import { AppShell } from "./components/AppShell";
 import { DevStatusPanel } from "./components/DevStatusPanel";
 import { DrawingToolbar } from "./components/DrawingToolbar";
+import { ExportSheetPanel } from "./components/ExportSheetPanel";
 import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
 import { PropertiesPanel } from "./components/PropertiesPanel";
@@ -44,6 +45,7 @@ export function App() {
       right={
         <>
           <ParcelSummary />
+          <ExportSheetPanel />
           <PropertiesPanel />
           <DevStatusPanel />
         </>

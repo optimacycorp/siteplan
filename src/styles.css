@@ -223,6 +223,11 @@ select {
   border-color: #2563eb;
 }
 
+.textarea-input {
+  resize: vertical;
+  min-height: 6rem;
+}
+
 .empty-state {
   padding: 1rem;
   border: 1px dashed #c7d4de;
@@ -442,13 +447,13 @@ select {
 .print-card-metadata {
   top: 7.5rem;
   right: 1rem;
-  width: min(28rem, 36%);
+  width: min(34rem, 44%);
   padding: 0.9rem 1rem;
 }
 
 .print-meta-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem 1rem;
 }
 
