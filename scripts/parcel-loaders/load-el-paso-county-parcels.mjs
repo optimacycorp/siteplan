@@ -1,6 +1,7 @@
 import { queryArcgisLayer } from "./lib/arcgisQuery.mjs";
 import { detectFieldMapping, normalizeParcelFeature } from "./lib/normalizeParcelFeature.mjs";
 import { upsertParcel } from "./lib/upsertParcel.mjs";
+import { pathToFileURL } from "node:url";
 
 export const EL_PASO_COUNTY_PARCELS = {
   sourceKey: "co-el-paso-county-parcels",
@@ -268,6 +269,7 @@ async function updateImportRun({ supabaseUrl, serviceRoleKey, id, status, fetche
 }
 
 async function loadFeatures(config, args) {
+  const { signal } = args;
   const effectiveBbox = Array.isArray(args.bbox) && args.bbox.length === 4
     ? args.bbox
     : Array.isArray(args.around) && args.around.length === 2
@@ -291,6 +293,7 @@ async function loadFeatures(config, args) {
       bbox: effectiveBbox,
       changedSince: args.changedSince,
       where: args.parcelId ? buildParcelIdWhere(config, args.parcelId) : "",
+      signal,
     });
 
     format = page.format;
@@ -310,6 +313,96 @@ async function loadFeatures(config, args) {
     format,
     raw: lastRaw,
     pageCount,
+  };
+}
+
+export async function importElPasoParcelsOnDemand({
+  around,
+  radiusMeters = 180,
+  limit = 250,
+  pageSize = 100,
+  maxPages = 6,
+  signal,
+} = {}) {
+  const supabaseUrl = process.env.SUPABASE_URL || "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for on-demand parcel loads.");
+  }
+
+  if (!Array.isArray(around) || around.length !== 2) {
+    throw new Error("around must be [lat, lng] for on-demand parcel loads.");
+  }
+
+  const args = {
+    dryRun: false,
+    listPresets: false,
+    preset: "",
+    limit,
+    all: false,
+    bbox: null,
+    changedSince: "",
+    parcelId: "",
+    around,
+    radiusMeters,
+    pageSize,
+    maxPages,
+  };
+
+  await ensureSourceRecord(EL_PASO_COUNTY_PARCELS);
+  const page = await loadFeatures(EL_PASO_COUNTY_PARCELS, { ...args, signal });
+  const sampleFeature = page.features[0] ?? null;
+  const fieldMapping = sampleFeature
+    ? detectFieldMapping(EL_PASO_COUNTY_PARCELS, sampleFeature.properties ?? {})
+    : {};
+
+  const importRunId = await createImportRun({
+    supabaseUrl,
+    serviceRoleKey,
+    mode: "on_demand",
+    metadata: {
+      around,
+      radiusMeters,
+      requestedLimit: limit,
+      pageSize,
+      pageCount: page.pageCount,
+    },
+  });
+
+  let upsertedCount = 0;
+  try {
+    for (const feature of page.features) {
+      const record = normalizeParcelFeature(feature, EL_PASO_COUNTY_PARCELS, fieldMapping);
+      if (!record.geometry || !record.external_id) continue;
+      await upsertParcel({ supabaseUrl, serviceRoleKey, parcel: record, signal });
+      upsertedCount += 1;
+    }
+
+    await updateImportRun({
+      supabaseUrl,
+      serviceRoleKey,
+      id: importRunId,
+      status: "succeeded",
+      fetchedCount: page.features.length,
+      upsertedCount,
+    });
+  } catch (error) {
+    await updateImportRun({
+      supabaseUrl,
+      serviceRoleKey,
+      id: importRunId,
+      status: "failed",
+      fetchedCount: page.features.length,
+      upsertedCount,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  return {
+    fetchedCount: page.features.length,
+    upsertedCount,
+    pageCount: page.pageCount,
   };
 }
 
@@ -412,7 +505,10 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+const entryHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : "";
+if (import.meta.url === entryHref) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

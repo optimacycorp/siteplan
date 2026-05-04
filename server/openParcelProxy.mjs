@@ -3,6 +3,7 @@ import { URL } from "node:url";
 import { PARCEL_PROVIDERS } from "./parcelProviders/types.mjs";
 import { createRegridLegacyProvider, HttpError } from "./parcelProviders/regridLegacyProvider.mjs";
 import { createLocalPostgisProvider } from "./parcelProviders/localPostgisProvider.mjs";
+import { importElPasoParcelsOnDemand } from "../scripts/parcel-loaders/load-el-paso-county-parcels.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const requestTimeoutMs = Number(process.env.REGRID_REQUEST_TIMEOUT_MS || 15000);
@@ -17,9 +18,16 @@ const enableRegridFallback = /^true$/i.test(process.env.OPEN_PARCEL_ENABLE_REGRI
 const supabasePointToleranceMeters = Number(process.env.OPEN_PARCEL_POINT_TOLERANCE_METERS || 25);
 const supabaseNeighborRadiusMeters = Number(process.env.OPEN_PARCEL_NEIGHBOR_RADIUS_METERS || 150);
 const supabaseNeighborLimit = Number(process.env.OPEN_PARCEL_NEIGHBOR_LIMIT || 8);
+const enableLazyLoadOnMiss = !/^false$/i.test(process.env.OPEN_PARCEL_LAZY_LOAD_ON_MISS || "true");
+const lazyLoadRadiusMeters = Number(process.env.OPEN_PARCEL_LAZY_LOAD_RADIUS_METERS || 180);
+const lazyLoadLimit = Number(process.env.OPEN_PARCEL_LAZY_LOAD_LIMIT || 250);
+const lazyLoadPageSize = Number(process.env.OPEN_PARCEL_LAZY_LOAD_PAGE_SIZE || 100);
+const lazyLoadMaxPages = Number(process.env.OPEN_PARCEL_LAZY_LOAD_MAX_PAGES || 6);
+const lazyLoadMissTtlMs = Number(process.env.OPEN_PARCEL_LAZY_LOAD_MISS_TTL_MS || 1000 * 60 * 10);
 
 const geocodeCache = new Map();
 const searchCache = new Map();
+const lazyLoadMissCache = new Map();
 let nextGeocodeAllowedAt = 0;
 
 const regridLegacyProvider = createRegridLegacyProvider({
@@ -183,6 +191,30 @@ function setSearchCacheEntry(query, value) {
   searchCache.set(normalizeText(query), {
     expiresAt: Date.now() + searchCacheTtlMs,
     value,
+  });
+}
+
+function lazyLoadBucketKey(lat, lng, radiusMeters = lazyLoadRadiusMeters) {
+  const latBucket = Math.round(lat * 1000);
+  const lngBucket = Math.round(lng * 1000);
+  const radiusBucket = Math.max(25, Math.round(radiusMeters));
+  return `${latBucket}:${lngBucket}:${radiusBucket}`;
+}
+
+function hasRecentLazyLoadMiss(lat, lng, radiusMeters = lazyLoadRadiusMeters) {
+  const key = lazyLoadBucketKey(lat, lng, radiusMeters);
+  const cached = lazyLoadMissCache.get(key);
+  if (!cached) return false;
+  if (cached.expiresAt <= Date.now()) {
+    lazyLoadMissCache.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function setRecentLazyLoadMiss(lat, lng, radiusMeters = lazyLoadRadiusMeters) {
+  lazyLoadMissCache.set(lazyLoadBucketKey(lat, lng, radiusMeters), {
+    expiresAt: Date.now() + lazyLoadMissTtlMs,
   });
 }
 
@@ -402,6 +434,51 @@ async function lookupParcel(input, signal) {
     center: { lat: input.lat, lng: input.lng },
     message: "Address located, but no parcel polygon was found. Zoomed to the area for manual selection.",
   };
+}
+
+async function ensureParcelCoverageAtPoint(input, signal) {
+  if (!enableLazyLoadOnMiss || !localPostgisProvider.enabled) {
+    return { attempted: false, reason: "disabled" };
+  }
+
+  const county = String(input.county || defaultCounty).trim().toLowerCase();
+  const state = String(input.state || defaultState).trim().toUpperCase();
+  if (state !== "CO" || county !== "el paso") {
+    return { attempted: false, reason: "unsupported_jurisdiction" };
+  }
+
+  if (hasRecentLazyLoadMiss(input.lat, input.lng, lazyLoadRadiusMeters)) {
+    return { attempted: false, reason: "cached_miss" };
+  }
+
+  try {
+    const result = await importElPasoParcelsOnDemand({
+      around: [input.lat, input.lng],
+      radiusMeters: lazyLoadRadiusMeters,
+      limit: lazyLoadLimit,
+      pageSize: lazyLoadPageSize,
+      maxPages: lazyLoadMaxPages,
+      signal,
+    });
+
+    if (!result.upsertedCount) {
+      setRecentLazyLoadMiss(input.lat, input.lng, lazyLoadRadiusMeters);
+    }
+
+    return {
+      attempted: true,
+      imported: result.upsertedCount,
+      fetched: result.fetchedCount,
+      pageCount: result.pageCount,
+    };
+  } catch (error) {
+    console.error(
+      error instanceof Error
+        ? `Lazy parcel load failed: ${error.message}`
+        : `Lazy parcel load failed: ${String(error)}`,
+    );
+    return { attempted: true, imported: 0, fetched: 0, pageCount: 0, error: true };
+  }
 }
 
 function toRadians(value) {
@@ -650,7 +727,31 @@ async function handlePoint(requestUrl, response, signal) {
     return;
   }
 
-  const lookup = await lookupParcel({ lat, lng }, signal);
+  let lookup = await lookupParcel({
+    lat,
+    lng,
+    state: requestUrl.searchParams.get("state") || defaultState,
+    county: requestUrl.searchParams.get("county") || defaultCounty,
+  }, signal);
+
+  if (!lookup.features[0]) {
+    const lazyLoad = await ensureParcelCoverageAtPoint({
+      lat,
+      lng,
+      state: requestUrl.searchParams.get("state") || defaultState,
+      county: requestUrl.searchParams.get("county") || defaultCounty,
+    }, signal);
+
+    if (lazyLoad.attempted && lazyLoad.imported > 0) {
+      lookup = await lookupParcel({
+        lat,
+        lng,
+        state: requestUrl.searchParams.get("state") || defaultState,
+        county: requestUrl.searchParams.get("county") || defaultCounty,
+      }, signal);
+    }
+  }
+
   sendJson(response, 200, { feature: lookup.features[0] ?? null });
 }
 
