@@ -17,6 +17,7 @@ function formatFeatureLabel(type: string, count: number) {
 
 export function PrintPlanSheet() {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
+  const basemap = useQuickSiteStore((state) => state.basemap);
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const drawings = useDrawingStore((state) => state.drawings);
 
@@ -106,6 +107,10 @@ export function PrintPlanSheet() {
           <div>
             <span>Area</span>
             <strong>{parcel?.areaAcres ? `${parcel.areaAcres.toFixed(2)} acres` : "-"}</strong>
+          </div>
+          <div>
+            <span>Map type</span>
+            <strong>{basemap === "streets" ? "Streets" : basemap === "satellite" ? "Satellite" : basemap}</strong>
           </div>
           <div>
             <span>County / State</span>

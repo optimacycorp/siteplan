@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { BasemapKey } from "../map/basemapRegistry";
 import { createExportSessionPayload, saveExportSession } from "../export/exportSession";
 
 type AppShellProps = {
@@ -10,8 +11,8 @@ type AppShellProps = {
 };
 
 export function AppShell({ left, map, right, subtitle, exportReady }: AppShellProps) {
-  const handleExport = () => {
-    const payload = createExportSessionPayload();
+  const handleExport = (basemap: BasemapKey) => {
+    const payload = createExportSessionPayload({ basemap });
     saveExportSession(payload);
     const exportUrl = new URL(window.location.href);
     exportUrl.searchParams.set("export", "1");
@@ -28,8 +29,21 @@ export function AppShell({ left, map, right, subtitle, exportReady }: AppShellPr
         </div>
         <div className="topbar-actions">
           <span>Conceptual planning exhibit only</span>
-          <button className="primary-button" disabled={!exportReady} onClick={handleExport} type="button">
-            Export PDF
+          <button
+            className="secondary-button"
+            disabled={!exportReady}
+            onClick={() => handleExport("streets")}
+            type="button"
+          >
+            Streets PDF
+          </button>
+          <button
+            className="primary-button"
+            disabled={!exportReady}
+            onClick={() => handleExport("satellite")}
+            type="button"
+          >
+            Satellite PDF
           </button>
         </div>
       </header>

@@ -1,5 +1,6 @@
 import { useDrawingStore } from "../state/drawingStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
+import type { BasemapKey } from "../map/basemapRegistry";
 import type { DrawingFeature } from "../types/drawing";
 import type { ParcelDetail, ParcelNeighbor } from "../types/parcel";
 
@@ -23,12 +24,12 @@ export type ExportSessionPayload = {
   drawings: DrawingFeature[];
 };
 
-export function createExportSessionPayload(): ExportSessionPayload {
+export function createExportSessionPayload(options?: { basemap?: BasemapKey }): ExportSessionPayload {
   const quickSiteState = useQuickSiteStore.getState();
   const drawingState = useDrawingStore.getState();
 
   return {
-    basemap: quickSiteState.basemap,
+    basemap: options?.basemap ?? quickSiteState.basemap,
     selectedParcel: quickSiteState.selectedParcel,
     neighbors: quickSiteState.neighbors,
     mapView: quickSiteState.mapView,
