@@ -1,10 +1,17 @@
 import { useQuickSiteStore } from "../state/quickSiteStore";
+import { useDrawingStore } from "../state/drawingStore";
 import { EmptyState } from "./EmptyState";
 import { InlineNotice } from "./InlineNotice";
 
 export function SelectedParcelCard() {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
   const clearSelectedParcel = useQuickSiteStore((state) => state.clearSelectedParcel);
+  const resetDrawings = useDrawingStore((state) => state.resetSession);
+
+  const handleChangeParcel = () => {
+    clearSelectedParcel();
+    resetDrawings();
+  };
 
   if (!parcel) {
     return (
@@ -32,7 +39,7 @@ export function SelectedParcelCard() {
           <button className="primary-button" disabled type="button">
             Parcel confirmed
           </button>
-          <button className="secondary-button" onClick={clearSelectedParcel} type="button">
+          <button className="secondary-button" onClick={handleChangeParcel} type="button">
             Change parcel
           </button>
         </div>

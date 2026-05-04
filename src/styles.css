@@ -80,6 +80,7 @@ select {
 .export-only-shell {
   min-height: 100vh;
   background: #fff;
+  padding: 1rem;
 }
 
 .export-loading {
@@ -89,6 +90,23 @@ select {
   color: #16324f;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.export-preview-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #d8e1e8;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.export-preview-field {
+  min-width: 220px;
+  margin-bottom: 0;
 }
 
 .export-only-map-panel {
@@ -617,6 +635,26 @@ select {
   color: #17324b;
 }
 
+.print-card-map-footer {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 0.7fr 1fr 2fr;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+}
+
+.print-card-map-footer p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #314658;
+}
+
 .print-details-page {
   padding: 0.2in 0;
   color: #172534;
@@ -751,7 +789,8 @@ select {
   .topbar,
   .left-panel,
   .right-panel,
-  .map-hint-overlay {
+  .map-hint-overlay,
+  .export-preview-toolbar {
     display: none !important;
   }
 
@@ -764,6 +803,7 @@ select {
   .export-only-shell {
     display: block;
     min-height: auto;
+    padding: 0;
   }
 
   .map-panel {
@@ -802,6 +842,10 @@ select {
   .print-card {
     box-shadow: none;
     background: rgba(255, 255, 255, 0.98);
+  }
+
+  .print-card-map-footer {
+    display: grid;
   }
 
   .print-card-metadata,

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { distanceMeters, formatBearing, formatFeetLabel } from "../map/mapUtils";
+import { distanceMeters, formatBearing, formatFeetLabel, summarizeDrawingFeature } from "../map/mapUtils";
 import { useDrawingStore } from "../state/drawingStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { PrintScaleBar } from "./PrintScaleBar";
@@ -78,6 +78,17 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
     [drawings],
   );
 
+  const featureTable = useMemo(
+    () =>
+      drawings.map((drawing) => ({
+        id: drawing.id,
+        label: drawing.label,
+        type: drawing.type,
+        summary: summarizeDrawingFeature(drawing),
+      })),
+    [drawings],
+  );
+
   if (variant === "map") {
     return (
       <div className="print-sheet print-sheet-map">
@@ -92,6 +103,23 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
             <div className="print-north-arrow" aria-label="North arrow">
               <span>N</span>
             </div>
+          </div>
+        </div>
+        <div className="print-card print-card-map-footer">
+          <div>
+            <div className="print-section-title">Map type</div>
+            <p>{basemap === "streets" ? "Streets" : basemap === "satellite" ? "Satellite" : basemap}</p>
+          </div>
+          <div>
+            <div className="print-section-title">Source</div>
+            <p>{parcel?.sourceKey || "local parcel cache"}{parcel?.sourceUrl ? " | county record available" : ""}</p>
+          </div>
+          <div>
+            <div className="print-section-title">Disclaimer</div>
+            <p>
+              Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat,
+              legal description, or construction document. Parcel data, imagery, contours, and public records should be independently verified.
+            </p>
           </div>
         </div>
       </div>
@@ -194,6 +222,38 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
                 </table>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {featureTable.length ? (
+          <div className="print-card print-card-details-boundary">
+            <div className="print-section-title">Feature Summary</div>
+            <div className="print-boundary-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Type</th>
+                    <th>Summary</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {featureTable.map((feature) => (
+                    <tr key={feature.id}>
+                      <td>{feature.label}</td>
+                      <td>{feature.type}</td>
+                      <td>
+                        {feature.summary.areaSqft
+                          ? `${feature.summary.areaSqft.toFixed(0)} sq ft`
+                          : feature.summary.lengthFeet
+                            ? `${feature.summary.lengthFeet.toFixed(1)} ft`
+                            : `${feature.summary.vertexCount} point(s)`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : null}
 

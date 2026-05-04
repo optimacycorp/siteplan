@@ -16,7 +16,7 @@ export function AppShell({ left, map, right, subtitle, exportReady }: AppShellPr
     saveExportSession(payload);
     const exportUrl = new URL(window.location.href);
     exportUrl.searchParams.set("export", "1");
-    exportUrl.searchParams.set("autoprint", "1");
+    exportUrl.searchParams.delete("autoprint");
     window.open(exportUrl.toString(), "_blank", "noopener,noreferrer");
   };
 
@@ -35,7 +35,7 @@ export function AppShell({ left, map, right, subtitle, exportReady }: AppShellPr
             onClick={() => handleExport("streets")}
             type="button"
           >
-            Streets PDF
+            Preview streets PDF
           </button>
           <button
             className="primary-button"
@@ -43,7 +43,7 @@ export function AppShell({ left, map, right, subtitle, exportReady }: AppShellPr
             onClick={() => handleExport("satellite")}
             type="button"
           >
-            Satellite PDF
+            Preview satellite PDF
           </button>
         </div>
       </header>

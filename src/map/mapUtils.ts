@@ -1,10 +1,34 @@
-export function geometryBounds(geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon): [[number, number], [number, number]] | null {
+import type { DrawingFeature, DrawingSummary } from "../types/drawing";
+
+export function geometryBounds(
+  geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon,
+): [[number, number], [number, number]] | null {
   const coords = geometry.type === "Polygon" ? geometry.coordinates.flat(1) : geometry.coordinates.flat(2);
   if (!coords.length) return null;
-  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
   coords.forEach(([lng, lat]) => {
-    minLng = Math.min(minLng, lng); minLat = Math.min(minLat, lat);
-    maxLng = Math.max(maxLng, lng); maxLat = Math.max(maxLat, lat);
+    minLng = Math.min(minLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLng = Math.max(maxLng, lng);
+    maxLat = Math.max(maxLat, lat);
+  });
+  return [[minLng, minLat], [maxLng, maxLat]];
+}
+
+export function pointBounds(points: Array<{ lng: number; lat: number }>): [[number, number], [number, number]] | null {
+  if (!points.length) return null;
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+  points.forEach(({ lng, lat }) => {
+    minLng = Math.min(minLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLng = Math.max(maxLng, lng);
+    maxLat = Math.max(maxLat, lat);
   });
   return [[minLng, minLat], [maxLng, maxLat]];
 }
@@ -13,12 +37,7 @@ function toRadians(value: number) {
   return (value * Math.PI) / 180;
 }
 
-export function distanceMeters(
-  fromLng: number,
-  fromLat: number,
-  toLng: number,
-  toLat: number,
-) {
+export function distanceMeters(fromLng: number, fromLat: number, toLng: number, toLat: number) {
   const earthRadiusMeters = 6371000;
   const dLat = toRadians(toLat - fromLat);
   const dLng = toRadians(toLng - fromLng);
@@ -26,8 +45,8 @@ export function distanceMeters(
   const lat2 = toRadians(toLat);
 
   const a =
-    Math.sin(dLat / 2) ** 2
-    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
 
   return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
@@ -77,12 +96,7 @@ export function formatAreaLabel(squareMeters: number) {
   return `${squareFeet.toFixed(0)} sq ft`;
 }
 
-export function formatBearing(
-  fromLng: number,
-  fromLat: number,
-  toLng: number,
-  toLat: number,
-) {
+export function formatBearing(fromLng: number, fromLat: number, toLng: number, toLat: number) {
   const lat1 = toRadians(fromLat);
   const lat2 = toRadians(toLat);
   const deltaLng = toRadians(toLng - fromLng);
@@ -111,4 +125,58 @@ export function formatBearing(
   return `${quadrant.ns} ${degrees.toString().padStart(2, "0")}°${minutes
     .toString()
     .padStart(2, "0")}'${seconds.toString().padStart(2, "0")}" ${quadrant.ew}`;
+}
+
+export function summarizeDrawingFeature(feature: DrawingFeature): DrawingSummary {
+  const vertexCount = feature.points.length;
+
+  if (feature.type === "label-point") {
+    const isValid = vertexCount >= 1 && feature.label.trim().length > 0;
+    return {
+      vertexCount,
+      isValid,
+      warning: isValid ? undefined : "Labels need a point and a name.",
+    };
+  }
+
+  let lengthMeters = 0;
+  for (let index = 0; index < feature.points.length - 1; index += 1) {
+    const current = feature.points[index];
+    const next = feature.points[index + 1];
+    lengthMeters += distanceMeters(current.lng, current.lat, next.lng, next.lat);
+  }
+
+  if (feature.type !== "structure-polygon") {
+    const isValid = vertexCount >= 2 && lengthMeters > 0.1;
+    return {
+      vertexCount,
+      lengthFeet: lengthMeters * 3.28084,
+      isValid,
+      warning: isValid ? undefined : "Lines and dimensions need at least two distinct points.",
+    };
+  }
+
+  const areaSqMeters = polygonAreaSquareMeters(feature.points);
+  const areaSqft = areaSqMeters * 10.7639;
+  const areaAcres = areaSqft / 43560;
+  const perimeterMeters =
+    lengthMeters +
+    (vertexCount >= 2
+      ? distanceMeters(
+          feature.points[vertexCount - 1].lng,
+          feature.points[vertexCount - 1].lat,
+          feature.points[0].lng,
+          feature.points[0].lat,
+        )
+      : 0);
+  const isValid = vertexCount >= 3 && areaSqMeters > 0.25;
+
+  return {
+    vertexCount,
+    lengthFeet: perimeterMeters * 3.28084,
+    areaSqft,
+    areaAcres,
+    isValid,
+    warning: isValid ? undefined : "Structures need at least three points and a non-zero area.",
+  };
 }

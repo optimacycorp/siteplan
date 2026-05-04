@@ -20,8 +20,10 @@ type QuickSiteState = {
     sheetNumber: string;
     revision: string;
     notes: string;
+    pageSize: "letter" | "tabloid";
   };
   layerVisibility: Record<string, boolean>;
+  mapFocusRequest: { key: string; bounds: [[number, number], [number, number]]; maxZoom?: number } | null;
   setBasemap: (basemap: BasemapKey) => void;
   setSearchText: (searchText: string) => void;
   setSearchResults: (results: ParcelSearchResult[]) => void;
@@ -32,6 +34,8 @@ type QuickSiteState = {
   clearSelectedParcel: () => void;
   setNeighbors: (neighbors: ParcelNeighbor[]) => void;
   setMapView: (mapView: { center: [number, number]; zoom: number }) => void;
+  focusMapBounds: (bounds: [[number, number], [number, number]], maxZoom?: number) => void;
+  clearMapFocusRequest: () => void;
   setExportMeta: (
     patch: Partial<{
       projectTitle: string;
@@ -41,6 +45,7 @@ type QuickSiteState = {
       sheetNumber: string;
       revision: string;
       notes: string;
+      pageSize: "letter" | "tabloid";
     }>,
   ) => void;
   hydrateExportSession: (payload: {
@@ -56,9 +61,11 @@ type QuickSiteState = {
       sheetNumber: string;
       revision: string;
       notes: string;
+      pageSize: "letter" | "tabloid";
     };
     layerVisibility: Record<string, boolean>;
   }) => void;
+  resetSession: () => void;
   toggleLayer: (layer: string) => void;
 };
 
@@ -75,6 +82,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
     center: [-104.897322, 38.87837],
     zoom: 17,
   },
+  mapFocusRequest: null,
   exportMeta: {
     projectTitle: "Conceptual Site Plan Exhibit",
     projectNumber: "",
@@ -83,7 +91,8 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
     sheetNumber: "Sheet 1",
     revision: "A",
     notes:
-      "Conceptual planning exhibit only. Not a boundary survey, legal description, or construction staking document.",
+      "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, contours, and public records should be independently verified before design, permitting, construction, or conveyance use.",
+    pageSize: "letter",
   },
   layerVisibility: {
     parcel: true,
@@ -103,6 +112,15 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   clearSelectedParcel: () => set({ selectedParcel: null, neighbors: [] }),
   setNeighbors: (neighbors) => set({ neighbors }),
   setMapView: (mapView) => set({ mapView }),
+  focusMapBounds: (bounds, maxZoom) =>
+    set({
+      mapFocusRequest: {
+        key: crypto.randomUUID(),
+        bounds,
+        maxZoom,
+      },
+    }),
+  clearMapFocusRequest: () => set({ mapFocusRequest: null }),
   setExportMeta: (patch) =>
     set((state) => ({
       exportMeta: {
@@ -123,6 +141,42 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
       layerVisibility: {
         ...state.layerVisibility,
         ...payload.layerVisibility,
+      },
+    })),
+  resetSession: () =>
+    set((state) => ({
+      basemap: "satellite",
+      searchText: "",
+      searchResults: [],
+      searchLoading: false,
+      searchError: "",
+      selectedParcelLoading: false,
+      selectedParcel: null,
+      neighbors: [],
+      mapView: {
+        center: [-104.897322, 38.87837],
+        zoom: 17,
+      },
+      mapFocusRequest: null,
+      exportMeta: {
+        ...state.exportMeta,
+        projectTitle: "Conceptual Site Plan Exhibit",
+        projectNumber: "",
+        preparedFor: "",
+        preparedBy: "Optimacy QuickSite",
+        sheetNumber: "Sheet 1",
+        revision: "A",
+        notes:
+          "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, contours, and public records should be independently verified before design, permitting, construction, or conveyance use.",
+        pageSize: "letter",
+      },
+      layerVisibility: {
+        parcel: true,
+        neighbors: true,
+        drawings: true,
+        labels: true,
+        contours: false,
+        buildings: false,
       },
     })),
   toggleLayer: (layer) =>

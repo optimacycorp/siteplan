@@ -39,6 +39,8 @@ export function QuickMapCanvas() {
     selectedParcel,
     neighbors,
     mapView,
+    mapFocusRequest,
+    clearMapFocusRequest,
     setMapView,
     layerVisibility,
     setSelectedParcel,
@@ -468,6 +470,17 @@ export function QuickMapCanvas() {
       duration: 350,
     });
   }, [selectedParcel?.llUuid, selectedParcel?.centroid, selectedParcel?.geometry]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapFocusRequest) return;
+    map.fitBounds(new LngLatBounds(mapFocusRequest.bounds[0], mapFocusRequest.bounds[1]), {
+      padding: 80,
+      maxZoom: mapFocusRequest.maxZoom ?? 19,
+      duration: 350,
+    });
+    clearMapFocusRequest();
+  }, [clearMapFocusRequest, mapFocusRequest]);
 
   const mapHint =
     mode === "select"

@@ -19,6 +19,7 @@ export type ExportSessionPayload = {
     sheetNumber: string;
     revision: string;
     notes: string;
+    pageSize: "letter" | "tabloid";
   };
   layerVisibility: Record<string, boolean>;
   drawings: DrawingFeature[];

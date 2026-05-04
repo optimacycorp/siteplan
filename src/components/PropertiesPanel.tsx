@@ -1,4 +1,5 @@
 import { useDrawingStore } from "../state/drawingStore";
+import { summarizeDrawingFeature } from "../map/mapUtils";
 import { EmptyState } from "./EmptyState";
 import { InlineNotice } from "./InlineNotice";
 
@@ -10,6 +11,7 @@ export function PropertiesPanel() {
   const renameSelected = useDrawingStore((state) => state.renameSelected);
   const deleteSelectedVertex = useDrawingStore((state) => state.deleteSelectedVertex);
   const selectedDrawing = drawings.find((feature) => feature.id === selectedDrawingId) ?? null;
+  const summary = selectedDrawing ? summarizeDrawingFeature(selectedDrawing) : null;
 
   return (
     <section className="panel-section">
@@ -34,6 +36,17 @@ export function PropertiesPanel() {
           <p className="muted">
             {selectedDrawing.type} | {selectedDrawing.points.length} point(s)
           </p>
+          {summary ? (
+            <p className="muted">
+              {summary.lengthFeet ? `Length ${summary.lengthFeet.toFixed(1)} ft` : ""}
+              {summary.lengthFeet && summary.areaSqft ? " | " : ""}
+              {summary.areaSqft ? `Area ${summary.areaSqft.toFixed(0)} sq ft` : ""}
+              {summary.areaAcres ? ` (${summary.areaAcres.toFixed(2)} ac)` : ""}
+            </p>
+          ) : null}
+          {!summary?.isValid && summary?.warning ? (
+            <InlineNotice tone="warning">{summary.warning}</InlineNotice>
+          ) : null}
           {selectedVertex?.drawingId === selectedDrawing.id ? (
             <>
               <InlineNotice tone="info">

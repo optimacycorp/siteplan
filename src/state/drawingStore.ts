@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { DrawingFeature, DrawingFeatureType, DrawingMode, LngLatPoint } from "../types/drawing";
+import { summarizeDrawingFeature } from "../map/mapUtils";
 
 type DrawingState = {
   mode: DrawingMode;
@@ -8,6 +9,7 @@ type DrawingState = {
   drawings: DrawingFeature[];
   selectedDrawingId: string | null;
   selectedVertex: { drawingId: string; pointIndex: number } | null;
+  validationMessage: string;
   setMode: (mode: DrawingMode) => void;
   addPoint: (point: LngLatPoint) => void;
   setActivePoints: (points: LngLatPoint[]) => void;
@@ -15,19 +17,18 @@ type DrawingState = {
   undoActivePoint: () => void;
   clearActiveFeature: () => void;
   deleteSelected: () => void;
+  deleteDrawingById: (id: string) => void;
+  duplicateDrawingById: (id: string) => void;
+  renameDrawingById: (id: string, label: string) => void;
   selectDrawing: (id: string | null) => void;
   renameSelected: (label: string) => void;
   selectVertex: (vertex: { drawingId: string; pointIndex: number } | null) => void;
   updateDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
   insertDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
   deleteSelectedVertex: () => void;
+  setValidationMessage: (message: string) => void;
+  resetSession: () => void;
   hydrateExportSession: (payload: { drawings: DrawingFeature[] }) => void;
-};
-
-const canComplete = (mode: DrawingMode, points: LngLatPoint[]) => {
-  if (mode === "label-point") return points.length >= 1;
-  if (mode === "structure-polygon") return points.length >= 3;
-  return points.length >= 2;
 };
 
 function createDefaultLabel(type: DrawingFeatureType, index: number) {
@@ -49,16 +50,17 @@ export const useDrawingStore = create<DrawingState>()(
       drawings: [],
       selectedDrawingId: null,
       selectedVertex: null,
-      setMode: (mode) => set({ mode, activePoints: [], selectedVertex: null }),
+      validationMessage: "",
+      setMode: (mode) => set({ mode, activePoints: [], selectedVertex: null, validationMessage: "" }),
       addPoint: (point) => {
         const { mode, activePoints } = get();
         if (mode === "select") return;
-        set({ activePoints: [...activePoints, point] });
+        set({ activePoints: [...activePoints, point], validationMessage: "" });
       },
-      setActivePoints: (activePoints) => set({ activePoints }),
+      setActivePoints: (activePoints) => set({ activePoints, validationMessage: "" }),
       completeActiveFeature: () => {
         const { mode, activePoints, drawings } = get();
-        if (mode === "select" || !canComplete(mode, activePoints)) return;
+        if (mode === "select") return;
         const nextIndex = drawings.filter((drawing) => drawing.type === mode).length + 1;
         const feature: DrawingFeature = {
           id: crypto.randomUUID(),
@@ -67,19 +69,58 @@ export const useDrawingStore = create<DrawingState>()(
           points: activePoints,
           createdAt: new Date().toISOString(),
         };
+        const summary = summarizeDrawingFeature(feature);
+        if (!summary.isValid) {
+          set({ validationMessage: summary.warning || "Finish the feature before completing it." });
+          return;
+        }
         set((state) => ({
           drawings: [...state.drawings, feature],
           activePoints: [],
           selectedDrawingId: feature.id,
+          selectedVertex: null,
+          validationMessage: "",
         }));
       },
-      undoActivePoint: () => set((state) => ({ activePoints: state.activePoints.slice(0, -1) })),
-      clearActiveFeature: () => set({ activePoints: [] }),
+      undoActivePoint: () => set((state) => ({ activePoints: state.activePoints.slice(0, -1), validationMessage: "" })),
+      clearActiveFeature: () => set({ activePoints: [], validationMessage: "" }),
       deleteSelected: () =>
         set((state) => ({
           drawings: state.drawings.filter((drawing) => drawing.id !== state.selectedDrawingId),
           selectedDrawingId: null,
           selectedVertex: null,
+          validationMessage: "",
+        })),
+      deleteDrawingById: (id) =>
+        set((state) => ({
+          drawings: state.drawings.filter((drawing) => drawing.id !== id),
+          selectedDrawingId: state.selectedDrawingId === id ? null : state.selectedDrawingId,
+          selectedVertex: state.selectedVertex?.drawingId === id ? null : state.selectedVertex,
+        })),
+      duplicateDrawingById: (id) =>
+        set((state) => {
+          const source = state.drawings.find((drawing) => drawing.id === id);
+          if (!source) return state;
+          const typeCount = state.drawings.filter((drawing) => drawing.type === source.type).length + 1;
+          const duplicate: DrawingFeature = {
+            ...source,
+            id: crypto.randomUUID(),
+            label: `${createDefaultLabel(source.type, typeCount)} copy`,
+            points: source.points.map((point) => ({ ...point })),
+            createdAt: new Date().toISOString(),
+          };
+          return {
+            ...state,
+            drawings: [...state.drawings, duplicate],
+            selectedDrawingId: duplicate.id,
+            selectedVertex: null,
+          };
+        }),
+      renameDrawingById: (id, label) =>
+        set((state) => ({
+          drawings: state.drawings.map((drawing) =>
+            drawing.id === id ? { ...drawing, label: label.trim() || drawing.label } : drawing,
+          ),
         })),
       selectDrawing: (selectedDrawingId) =>
         set((state) => ({
@@ -108,6 +149,7 @@ export const useDrawingStore = create<DrawingState>()(
                   ),
                 },
           ),
+          validationMessage: "",
         })),
       insertDrawingPoint: (drawingId, pointIndex, point) =>
         set((state) => ({
@@ -125,6 +167,7 @@ export const useDrawingStore = create<DrawingState>()(
           ),
           selectedDrawingId: drawingId,
           selectedVertex: { drawingId, pointIndex },
+          validationMessage: "",
         })),
       deleteSelectedVertex: () => {
         const { selectedVertex, drawings } = get();
@@ -151,8 +194,19 @@ export const useDrawingStore = create<DrawingState>()(
                 },
           ),
           selectedVertex: null,
+          validationMessage: "",
         }));
       },
+      setValidationMessage: (validationMessage) => set({ validationMessage }),
+      resetSession: () =>
+        set({
+          mode: "select",
+          activePoints: [],
+          drawings: [],
+          selectedDrawingId: null,
+          selectedVertex: null,
+          validationMessage: "",
+        }),
       hydrateExportSession: (payload) =>
         set({
           mode: "select",
@@ -160,6 +214,7 @@ export const useDrawingStore = create<DrawingState>()(
           drawings: payload.drawings,
           selectedDrawingId: null,
           selectedVertex: null,
+          validationMessage: "",
         }),
     }),
     {

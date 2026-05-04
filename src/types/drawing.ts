@@ -17,3 +17,12 @@ export type DrawingFeature = {
   points: LngLatPoint[];
   createdAt: string;
 };
+
+export type DrawingSummary = {
+  lengthFeet?: number;
+  areaSqft?: number;
+  areaAcres?: number;
+  vertexCount: number;
+  isValid: boolean;
+  warning?: string;
+};

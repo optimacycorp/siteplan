@@ -8,7 +8,8 @@ export function ExportSheetPanel() {
     <section className="panel-section">
       <h2>Export sheet</h2>
       <p className="muted">
-        These title block fields appear in the plat-style print export.
+        These title block fields appear in the plat-style print export. Page size and final print
+        actions live in the export preview.
       </p>
 
       <label className="field-label" htmlFor="export-project-title">

@@ -1,7 +1,9 @@
 import type { ParcelDetail, ParcelNeighbor, ParcelSearchResult } from "../types/parcel";
 
 const proxyBaseUrl =
-  import.meta.env.VITE_REGRID_PROXY_BASE_URL ?? "/regrid/";
+  import.meta.env.VITE_PARCEL_PROXY_BASE_URL ??
+  import.meta.env.VITE_REGRID_PROXY_BASE_URL ??
+  "/regrid/";
 
 type OpenParcelFeature = {
   type: "Feature";

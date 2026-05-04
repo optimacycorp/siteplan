@@ -18,12 +18,24 @@ export function DrawingToolbar() {
   const {
     mode,
     activePoints,
+    validationMessage,
     setMode,
     completeActiveFeature,
     undoActivePoint,
     clearActiveFeature,
     deleteSelected,
   } = useDrawingStore();
+
+  const toolHelp =
+    mode === "select"
+      ? "Select a drawn feature to rename it, zoom to it, duplicate it, or reshape it with vertices."
+      : mode === "structure-polygon"
+        ? "Click to place corners for a custom footprint, or click-drag once to place a rectangle."
+        : mode === "dimension-line"
+          ? "Click-drag from start to end to place a dimension line."
+          : mode === "label-point"
+            ? "Click the map to place a label anchor, then rename it in the feature list."
+            : "Click to place points. Press Enter to complete, Escape to cancel, or Delete to remove the selected feature.";
 
   return (
     <section className="panel-section">
@@ -34,15 +46,11 @@ export function DrawingToolbar() {
           body="Once the parcel is selected, you can draw the proposed structure, driveway, easement, dimensions, or labels."
         />
       ) : null}
-      {selectedParcel ? (
-        <p className="muted">
-          Click to place points. Drag structures or dimension lines in one motion. In Select mode,
-          drag blue vertices to refine existing geometry.
-        </p>
-      ) : null}
+      {selectedParcel ? <p className="muted">{toolHelp}</p> : null}
       {selectedParcel && mode !== "select" ? (
         <InlineNotice tone="info">Current tool: {tools.find((tool) => tool.mode === mode)?.label || "Draw"}</InlineNotice>
       ) : null}
+      {selectedParcel && validationMessage ? <InlineNotice tone="warning">{validationMessage}</InlineNotice> : null}
       <div className="toolbar-grid">
         {tools.map((tool) => (
           <button
@@ -68,7 +76,12 @@ export function DrawingToolbar() {
           Delete selected
         </button>
       </div>
-      {selectedParcel ? <p className="muted">Active sketch points: {activePoints.length}</p> : null}
+      {selectedParcel ? (
+        <p className="muted">
+          Active sketch points: {activePoints.length}. Shortcuts: Enter completes, Escape cancels,
+          Delete removes the selected feature or vertex.
+        </p>
+      ) : null}
     </section>
   );
 }

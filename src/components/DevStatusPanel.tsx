@@ -7,7 +7,10 @@ type ProxyStatus = {
   providerMode?: string;
 };
 
-const proxyBaseUrl = import.meta.env.VITE_REGRID_PROXY_BASE_URL ?? "/regrid/";
+const proxyBaseUrl =
+  import.meta.env.VITE_PARCEL_PROXY_BASE_URL ??
+  import.meta.env.VITE_REGRID_PROXY_BASE_URL ??
+  "/regrid/";
 const fixtureMode = String(import.meta.env.VITE_USE_PARCEL_FIXTURES || "").toLowerCase() === "true";
 
 function resolveHealthUrl() {
@@ -57,7 +60,7 @@ export function DevStatusPanel() {
       <dl className="summary-grid">
         <dt>Fixture mode</dt>
         <dd>{fixtureMode ? "on" : "off"}</dd>
-        <dt>Proxy base</dt>
+        <dt>Parcel proxy base</dt>
         <dd>{proxyBaseUrl}</dd>
         <dt>Proxy health</dt>
         <dd>{proxyStatus ? (proxyStatus.ok ? proxyStatus.providerMode || "ok" : "unreachable") : "checking..."}</dd>
