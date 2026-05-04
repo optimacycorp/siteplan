@@ -43,6 +43,22 @@ type QuickSiteState = {
       notes: string;
     }>,
   ) => void;
+  hydrateExportSession: (payload: {
+    basemap: BasemapKey;
+    selectedParcel: ParcelDetail | null;
+    neighbors: ParcelNeighbor[];
+    mapView: { center: [number, number]; zoom: number };
+    exportMeta: {
+      projectTitle: string;
+      projectNumber: string;
+      preparedFor: string;
+      preparedBy: string;
+      sheetNumber: string;
+      revision: string;
+      notes: string;
+    };
+    layerVisibility: Record<string, boolean>;
+  }) => void;
   toggleLayer: (layer: string) => void;
 };
 
@@ -92,6 +108,21 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
       exportMeta: {
         ...state.exportMeta,
         ...patch,
+      },
+    })),
+  hydrateExportSession: (payload) =>
+    set((state) => ({
+      basemap: payload.basemap,
+      selectedParcel: payload.selectedParcel,
+      neighbors: payload.neighbors,
+      mapView: payload.mapView,
+      exportMeta: {
+        ...state.exportMeta,
+        ...payload.exportMeta,
+      },
+      layerVisibility: {
+        ...state.layerVisibility,
+        ...payload.layerVisibility,
       },
     })),
   toggleLayer: (layer) =>

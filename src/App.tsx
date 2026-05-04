@@ -3,6 +3,7 @@ import { AppShell } from "./components/AppShell";
 import { DevStatusPanel } from "./components/DevStatusPanel";
 import { DrawingToolbar } from "./components/DrawingToolbar";
 import { ExportSheetPanel } from "./components/ExportSheetPanel";
+import { ExportOnlyApp } from "./components/ExportOnlyApp";
 import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
 import { PropertiesPanel } from "./components/PropertiesPanel";
@@ -14,6 +15,14 @@ import { useQuickSiteStore } from "./state/quickSiteStore";
 import { useDrawingStore } from "./state/drawingStore";
 
 export function App() {
+  const isExportView =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("export") === "1";
+
+  if (isExportView) {
+    return <ExportOnlyApp />;
+  }
+
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
   const drawingCount = useDrawingStore((state) => state.drawings.length);
   const exportReady = Boolean(selectedParcel) && drawingCount > 0;

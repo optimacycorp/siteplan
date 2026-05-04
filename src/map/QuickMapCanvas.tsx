@@ -18,6 +18,9 @@ const defaultCenter: [number, number] = [
 const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM ?? 17);
 
 export function QuickMapCanvas() {
+  const isExportView =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("export") === "1";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const modeRef = useRef(useDrawingStore.getState().mode);
@@ -444,7 +447,7 @@ export function QuickMapCanvas() {
   return (
     <>
       <div className="map-canvas" ref={containerRef} />
-      <div className="map-hint-overlay">{mapHint}</div>
+      {!isExportView ? <div className="map-hint-overlay">{mapHint}</div> : null}
     </>
   );
 }

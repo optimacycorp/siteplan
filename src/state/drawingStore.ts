@@ -21,6 +21,7 @@ type DrawingState = {
   updateDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
   insertDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
   deleteSelectedVertex: () => void;
+  hydrateExportSession: (payload: { drawings: DrawingFeature[] }) => void;
 };
 
 const canComplete = (mode: DrawingMode, points: LngLatPoint[]) => {
@@ -152,6 +153,14 @@ export const useDrawingStore = create<DrawingState>()(
           selectedVertex: null,
         }));
       },
+      hydrateExportSession: (payload) =>
+        set({
+          mode: "select",
+          activePoints: [],
+          drawings: payload.drawings,
+          selectedDrawingId: null,
+          selectedVertex: null,
+        }),
     }),
     {
       name: "optimacy-quicksite-drawings",

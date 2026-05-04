@@ -77,6 +77,16 @@ select {
   position: relative;
 }
 
+.export-only-shell {
+  min-height: 100vh;
+  background: #fff;
+}
+
+.export-only-map-panel {
+  min-height: 100vh;
+  border: 0;
+}
+
 .panel-section {
   border-bottom: 1px solid #e4ebf0;
   padding: 1rem;
@@ -669,6 +679,11 @@ select {
     display: block;
     height: auto;
     background: #fff;
+  }
+
+  .export-only-shell {
+    display: block;
+    min-height: auto;
   }
 
   .map-panel {
