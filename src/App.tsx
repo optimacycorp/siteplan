@@ -7,7 +7,6 @@ import { ExportOnlyApp } from "./components/ExportOnlyApp";
 import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
 import { PropertiesPanel } from "./components/PropertiesPanel";
-import { PrintPlanSheet } from "./components/PrintPlanSheet";
 import { SelectedParcelCard } from "./components/SelectedParcelCard";
 import { WorkflowSteps } from "./components/WorkflowSteps";
 import { QuickMapCanvas } from "./map/QuickMapCanvas";
@@ -48,7 +47,6 @@ export function App() {
       map={
         <>
           <QuickMapCanvas />
-          <PrintPlanSheet />
         </>
       }
       right={

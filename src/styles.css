@@ -412,6 +412,10 @@ select {
   display: none;
 }
 
+.print-sheet-details {
+  background: #fff;
+}
+
 .print-card {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(23, 50, 75, 0.18);
@@ -613,6 +617,73 @@ select {
   color: #17324b;
 }
 
+.print-details-page {
+  padding: 0.2in 0;
+  color: #172534;
+}
+
+.print-details-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.18in;
+}
+
+.print-details-title h1 {
+  margin: 0.15rem 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.print-details-title p {
+  margin: 0;
+  color: #4b5f73;
+}
+
+.print-details-sheet-meta {
+  min-width: 90px;
+  text-align: right;
+}
+
+.print-details-sheet-meta span {
+  display: block;
+  color: #5f6f83;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.print-details-sheet-meta strong {
+  font-size: 1rem;
+}
+
+.print-card-details-metadata,
+.print-card-details-boundary,
+.print-card-details-footer {
+  position: static;
+  border-radius: 16px;
+}
+
+.print-card-details-metadata,
+.print-card-details-boundary {
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.18in;
+}
+
+.print-card-details-footer {
+  display: grid;
+  grid-template-columns: 1.15fr 1.35fr 1fr;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+}
+
+.print-card-details-footer p {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #314658;
+}
+
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 320px 1fr;
@@ -697,11 +768,12 @@ select {
 
   .map-panel {
     position: relative;
-    min-height: 7.5in;
-    height: calc(100vh - 0.7in);
+    min-height: 7.4in;
+    height: 7.4in;
     border: 1px solid #c7d4de;
     overflow: hidden;
     page-break-inside: avoid;
+    page-break-after: always;
     background: #fff;
   }
 
@@ -722,8 +794,23 @@ select {
     display: block;
   }
 
+  .print-sheet-details {
+    break-before: page;
+    page-break-before: always;
+  }
+
   .print-card {
     box-shadow: none;
     background: rgba(255, 255, 255, 0.98);
+  }
+
+  .print-card-metadata,
+  .print-card-boundary,
+  .print-card-footer {
+    display: none;
+  }
+
+  .print-details-page {
+    min-height: 7.4in;
   }
 }

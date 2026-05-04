@@ -1,7 +1,7 @@
 import { useMemo } from "react";
+import { distanceMeters, formatBearing, formatFeetLabel } from "../map/mapUtils";
 import { useDrawingStore } from "../state/drawingStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
-import { distanceMeters, formatBearing, formatFeetLabel } from "../map/mapUtils";
 import { PrintScaleBar } from "./PrintScaleBar";
 
 function formatFeatureLabel(type: string, count: number) {
@@ -15,7 +15,11 @@ function formatFeatureLabel(type: string, count: number) {
   return `${labels[type] ?? type} (${count})`;
 }
 
-export function PrintPlanSheet() {
+type PrintPlanSheetProps = {
+  variant: "map" | "details";
+};
+
+export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
   const basemap = useQuickSiteStore((state) => state.basemap);
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
@@ -74,116 +78,141 @@ export function PrintPlanSheet() {
     [drawings],
   );
 
-  return (
-    <div className="print-sheet">
-      <div className="print-card print-card-header">
-        <div>
-          <div className="print-kicker">Optimacy QuickSite</div>
-          <h1>{exportMeta.projectTitle || "Conceptual Site Plan Exhibit"}</h1>
-          <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
-        </div>
-        <div className="print-card-header-tools">
-          <PrintScaleBar />
-          <div className="print-north-arrow" aria-label="North arrow">
-            <span>N</span>
+  if (variant === "map") {
+    return (
+      <div className="print-sheet print-sheet-map">
+        <div className="print-card print-card-header">
+          <div>
+            <div className="print-kicker">Optimacy QuickSite</div>
+            <h1>{exportMeta.projectTitle || "Conceptual Site Plan Exhibit"}</h1>
+            <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
+          </div>
+          <div className="print-card-header-tools">
+            <PrintScaleBar />
+            <div className="print-north-arrow" aria-label="North arrow">
+              <span>N</span>
+            </div>
           </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="print-card print-card-metadata">
-        <div className="print-meta-grid">
+  return (
+    <div className="print-sheet print-sheet-details">
+      <div className="print-details-page">
+        <div className="print-details-title">
           <div>
-            <span>APN</span>
-            <strong>{parcel?.apn || "-"}</strong>
+            <div className="print-kicker">Optimacy QuickSite</div>
+            <h1>{exportMeta.projectTitle || "Conceptual Site Plan Exhibit"}</h1>
+            <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
           </div>
-          <div>
-            <span>Project no.</span>
-            <strong>{exportMeta.projectNumber || "-"}</strong>
-          </div>
-          <div>
-            <span>Owner</span>
-            <strong>{parcel?.ownerName || "-"}</strong>
-          </div>
-          <div>
-            <span>Area</span>
-            <strong>{parcel?.areaAcres ? `${parcel.areaAcres.toFixed(2)} acres` : "-"}</strong>
-          </div>
-          <div>
-            <span>Map type</span>
-            <strong>{basemap === "streets" ? "Streets" : basemap === "satellite" ? "Satellite" : basemap}</strong>
-          </div>
-          <div>
-            <span>County / State</span>
-            <strong>{[parcel?.county, parcel?.state].filter(Boolean).join(", ") || "-"}</strong>
-          </div>
-          <div>
-            <span>Zoning</span>
-            <strong>{parcel?.zoning || "-"}</strong>
-          </div>
-          <div>
-            <span>Printed</span>
-            <strong>{printedAt}</strong>
-          </div>
-          <div>
-            <span>Prepared for</span>
-            <strong>{exportMeta.preparedFor || "-"}</strong>
-          </div>
-          <div>
-            <span>Prepared by</span>
-            <strong>{exportMeta.preparedBy || "-"}</strong>
-          </div>
-          <div>
+          <div className="print-details-sheet-meta">
             <span>Sheet</span>
             <strong>{exportMeta.sheetNumber || "-"}</strong>
           </div>
-          <div>
-            <span>Revision</span>
-            <strong>{exportMeta.revision || "-"}</strong>
+        </div>
+
+        <div className="print-card print-card-details-metadata">
+          <div className="print-meta-grid">
+            <div>
+              <span>APN</span>
+              <strong>{parcel?.apn || "-"}</strong>
+            </div>
+            <div>
+              <span>Project no.</span>
+              <strong>{exportMeta.projectNumber || "-"}</strong>
+            </div>
+            <div>
+              <span>Owner</span>
+              <strong>{parcel?.ownerName || "-"}</strong>
+            </div>
+            <div>
+              <span>Area</span>
+              <strong>{parcel?.areaAcres ? `${parcel.areaAcres.toFixed(2)} acres` : "-"}</strong>
+            </div>
+            <div>
+              <span>Map type</span>
+              <strong>
+                {basemap === "streets" ? "Streets" : basemap === "satellite" ? "Satellite" : basemap}
+              </strong>
+            </div>
+            <div>
+              <span>County / State</span>
+              <strong>{[parcel?.county, parcel?.state].filter(Boolean).join(", ") || "-"}</strong>
+            </div>
+            <div>
+              <span>Zoning</span>
+              <strong>{parcel?.zoning || "-"}</strong>
+            </div>
+            <div>
+              <span>Printed</span>
+              <strong>{printedAt}</strong>
+            </div>
+            <div>
+              <span>Prepared for</span>
+              <strong>{exportMeta.preparedFor || "-"}</strong>
+            </div>
+            <div>
+              <span>Prepared by</span>
+              <strong>{exportMeta.preparedBy || "-"}</strong>
+            </div>
+            <div>
+              <span>Revision</span>
+              <strong>{exportMeta.revision || "-"}</strong>
+            </div>
+            <div>
+              <span>Source</span>
+              <strong>{parcel?.sourceKey || "local parcel cache"}</strong>
+            </div>
           </div>
         </div>
-      </div>
 
-      {boundaryTables.length ? (
-        <div className="print-card print-card-boundary">
-          <div className="print-section-title">Boundary / Line Table</div>
-          {boundaryTables.map((table) => (
-            <div className="print-boundary-table" key={table.id}>
-              <strong>{table.label}</strong>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Line</th>
-                    <th>Bearing</th>
-                    <th>Distance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.segments.map((segment) => (
-                    <tr key={segment.label}>
-                      <td>{segment.label}</td>
-                      <td>{segment.bearing}</td>
-                      <td>{segment.distance}</td>
+        {boundaryTables.length ? (
+          <div className="print-card print-card-details-boundary">
+            <div className="print-section-title">Boundary / Line Table</div>
+            {boundaryTables.map((table) => (
+              <div className="print-boundary-table" key={table.id}>
+                <strong>{table.label}</strong>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Line</th>
+                      <th>Bearing</th>
+                      <th>Distance</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-      ) : null}
+                  </thead>
+                  <tbody>
+                    {table.segments.map((segment) => (
+                      <tr key={segment.label}>
+                        <td>{segment.label}</td>
+                        <td>{segment.bearing}</td>
+                        <td>{segment.distance}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
-      <div className="print-card print-card-footer">
-        <div>
-          <div className="print-section-title">Plan Features</div>
-          <p>{drawingSummary.length ? drawingSummary.join(" | ") : "No plan features added."}</p>
-        </div>
-        <div>
-          <div className="print-section-title">Exhibit Notes</div>
-          <p>{exportMeta.notes || "Conceptual planning exhibit only."}</p>
-        </div>
-        <div>
-          <div className="print-section-title">Source</div>
-          <p>{parcel?.sourceKey || "local parcel cache"}{parcel?.sourceUrl ? " | county record available" : ""}</p>
+        <div className="print-card print-card-details-footer">
+          <div>
+            <div className="print-section-title">Plan Features</div>
+            <p>{drawingSummary.length ? drawingSummary.join(" | ") : "No plan features added."}</p>
+          </div>
+          <div>
+            <div className="print-section-title">Exhibit Notes</div>
+            <p>{exportMeta.notes || "Conceptual planning exhibit only."}</p>
+          </div>
+          <div>
+            <div className="print-section-title">Source</div>
+            <p>
+              {parcel?.sourceKey || "local parcel cache"}
+              {parcel?.sourceUrl ? " | county record available" : ""}
+            </p>
+          </div>
         </div>
       </div>
     </div>

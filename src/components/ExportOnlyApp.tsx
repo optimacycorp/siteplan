@@ -57,8 +57,9 @@ export function ExportOnlyApp() {
     <div className="export-only-shell">
       <div className="map-panel export-only-map-panel">
         <QuickMapCanvas />
-        <PrintPlanSheet />
+        <PrintPlanSheet variant="map" />
       </div>
+      <PrintPlanSheet variant="details" />
     </div>
   );
 }
