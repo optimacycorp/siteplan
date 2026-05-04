@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useDrawingStore } from "../state/drawingStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
+import { PrintScaleBar } from "./PrintScaleBar";
 
 function formatFeatureLabel(type: string, count: number) {
   const labels: Record<string, string> = {
@@ -44,8 +45,11 @@ export function PrintPlanSheet() {
           <h1>Conceptual Site Plan Exhibit</h1>
           <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
         </div>
-        <div className="print-north-arrow" aria-label="North arrow">
-          <span>N</span>
+        <div className="print-card-header-tools">
+          <PrintScaleBar />
+          <div className="print-north-arrow" aria-label="North arrow">
+            <span>N</span>
+          </div>
         </div>
       </div>
 

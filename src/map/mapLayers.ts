@@ -1,6 +1,13 @@
 import type { DrawingFeature } from "../types/drawing";
 import type { ParcelDetail, ParcelNeighbor } from "../types/parcel";
 import type { MapLayerDescriptor } from "./mapLayerManager";
+import {
+  distanceMeters,
+  formatAreaLabel,
+  formatFeetLabel,
+  polygonAreaSquareMeters,
+  polygonCentroid,
+} from "./mapUtils";
 
 function fc(features: GeoJSON.Feature[]): GeoJSON.FeatureCollection {
   return { type: "FeatureCollection", features };
@@ -92,6 +99,54 @@ export function buildMapLayers(input: {
           },
         }) as GeoJSON.Feature,
     );
+
+  const lineMeasurementLabels = input.drawings
+    .filter(
+      (drawing) =>
+        drawing.type !== "label-point" &&
+        drawing.type !== "structure-polygon" &&
+        drawing.points.length >= 2,
+    )
+    .flatMap((drawing) => {
+      const start = drawing.points[0];
+      const end = drawing.points[drawing.points.length - 1];
+      const mid = midpoint(start, end);
+      const label = formatFeetLabel(distanceMeters(start.lng, start.lat, end.lng, end.lat));
+      return [
+        {
+          type: "Feature",
+          properties: {
+            id: `${drawing.id}-measurement`,
+            label,
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [mid.lng, mid.lat],
+          },
+        } as GeoJSON.Feature,
+      ];
+    });
+
+  const polygonMeasurementLabels = input.drawings
+    .filter((drawing) => drawing.type === "structure-polygon" && drawing.points.length >= 3)
+    .flatMap((drawing) => {
+      const centroid = polygonCentroid(drawing.points);
+      if (!centroid) return [];
+      const label = formatAreaLabel(polygonAreaSquareMeters(drawing.points));
+      return [
+        {
+          type: "Feature",
+          properties: {
+            id: `${drawing.id}-area`,
+            label,
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [centroid.lng, centroid.lat],
+          },
+        } as GeoJSON.Feature,
+      ];
+    });
 
   const labelDrawings = input.drawings
     .filter((drawing) => drawing.type === "label-point" && drawing.points[0])
@@ -272,6 +327,25 @@ export function buildMapLayers(input: {
       },
       visible: input.layerVisibility.labels,
       interactive: true,
+    },
+    {
+      id: "drawing-measurements",
+      sourceId: "drawing-measurements",
+      source: { type: "geojson", data: fc([...lineMeasurementLabels, ...polygonMeasurementLabels]) },
+      layer: {
+        type: "symbol",
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 12,
+          "text-offset": [0, 0],
+        },
+        paint: {
+          "text-color": "#172534",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.4,
+        },
+      },
+      visible: input.layerVisibility.labels,
     },
     {
       id: "drawing-vertices",

@@ -34,6 +34,7 @@ export function QuickMapCanvas() {
     basemap,
     selectedParcel,
     neighbors,
+    setMapView,
     layerVisibility,
     setSelectedParcel,
     setNeighbors,
@@ -106,6 +107,10 @@ export function QuickMapCanvas() {
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "bottom-right");
     map.doubleClickZoom.disable();
+    setMapView({
+      center: [map.getCenter().lng, map.getCenter().lat],
+      zoom: map.getZoom(),
+    });
 
     const setCursor = (cursor: string) => {
       map.getCanvas().style.cursor = cursor;
@@ -206,6 +211,12 @@ export function QuickMapCanvas() {
 
     map.on("mousemove", handleMouseMove);
     map.on("mouseup", handleMouseUp);
+    map.on("moveend", () => {
+      setMapView({
+        center: [map.getCenter().lng, map.getCenter().lat],
+        zoom: map.getZoom(),
+      });
+    });
 
     map.on("mouseenter", "drawing-vertices", () => {
       if (modeRef.current === "select") {

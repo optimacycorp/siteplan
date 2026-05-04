@@ -11,6 +11,7 @@ type QuickSiteState = {
   selectedParcelLoading: boolean;
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
+  mapView: { center: [number, number]; zoom: number };
   layerVisibility: Record<string, boolean>;
   setBasemap: (basemap: BasemapKey) => void;
   setSearchText: (searchText: string) => void;
@@ -21,6 +22,7 @@ type QuickSiteState = {
   setSelectedParcel: (parcel: ParcelDetail | null) => void;
   clearSelectedParcel: () => void;
   setNeighbors: (neighbors: ParcelNeighbor[]) => void;
+  setMapView: (mapView: { center: [number, number]; zoom: number }) => void;
   toggleLayer: (layer: string) => void;
 };
 
@@ -33,6 +35,10 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   selectedParcelLoading: false,
   selectedParcel: null,
   neighbors: [],
+  mapView: {
+    center: [-104.897322, 38.87837],
+    zoom: 17,
+  },
   layerVisibility: {
     parcel: true,
     neighbors: true,
@@ -50,6 +56,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   setSelectedParcel: (selectedParcel) => set({ selectedParcel }),
   clearSelectedParcel: () => set({ selectedParcel: null, neighbors: [] }),
   setNeighbors: (neighbors) => set({ neighbors }),
+  setMapView: (mapView) => set({ mapView }),
   toggleLayer: (layer) =>
     set((state) => ({
       layerVisibility: {
