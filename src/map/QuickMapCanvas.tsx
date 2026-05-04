@@ -26,6 +26,7 @@ export function QuickMapCanvas() {
   const modeRef = useRef(useDrawingStore.getState().mode);
   const layersRef = useRef<ReturnType<typeof buildMapLayers>>([]);
   const suppressClickRef = useRef(false);
+  const exportReadyDispatchedRef = useRef(false);
   const draggingVertexRef = useRef<{ drawingId: string; pointIndex: number } | null>(null);
   const drawingDimensionRef = useRef<{ start: { lng: number; lat: number } } | null>(null);
   const drawingStructureRectRef = useRef<{
@@ -37,6 +38,7 @@ export function QuickMapCanvas() {
     basemap,
     selectedParcel,
     neighbors,
+    mapView,
     setMapView,
     layerVisibility,
     setSelectedParcel,
@@ -98,14 +100,38 @@ export function QuickMapCanvas() {
     registerMapLayers(map, layersRef.current);
   }
 
+  function dispatchExportReady() {
+    if (!isExportView || exportReadyDispatchedRef.current || typeof window === "undefined") return;
+    exportReadyDispatchedRef.current = true;
+    window.dispatchEvent(new CustomEvent("quicksite-export-map-ready"));
+  }
+
+  function scheduleExportReady(map: maplibregl.Map) {
+    if (!isExportView || exportReadyDispatchedRef.current) return;
+
+    const notifyWhenIdle = () => {
+      window.setTimeout(() => {
+        syncAppLayers(map);
+        dispatchExportReady();
+      }, 150);
+    };
+
+    if (map.loaded()) {
+      notifyWhenIdle();
+      return;
+    }
+
+    map.once("idle", notifyWhenIdle);
+  }
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: getBasemapDefinition(basemap).style,
-      center: selectedParcel?.centroid ?? defaultCenter,
-      zoom: defaultZoom,
+      center: mapView.center ?? selectedParcel?.centroid ?? defaultCenter,
+      zoom: mapView.zoom ?? defaultZoom,
     });
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "bottom-right");
@@ -386,7 +412,10 @@ export function QuickMapCanvas() {
       completeActiveFeature();
     });
 
-    map.on("load", () => syncAppLayers(map));
+    map.on("load", () => {
+      syncAppLayers(map);
+      scheduleExportReady(map);
+    });
     mapRef.current = map;
 
     return () => {
@@ -400,17 +429,23 @@ export function QuickMapCanvas() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    exportReadyDispatchedRef.current = false;
     map.setStyle(getBasemapDefinition(basemap).style);
-    map.once("style.load", () => syncAppLayers(map));
+    map.once("style.load", () => {
+      syncAppLayers(map);
+      scheduleExportReady(map);
+    });
   }, [basemap]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map?.isStyleLoaded()) return;
     syncAppLayers(map);
+    scheduleExportReady(map);
   }, [layers]);
 
   useEffect(() => {
+    if (isExportView) return;
     const map = mapRef.current;
     if (!map || !selectedParcel?.geometry) return;
     const bounds = geometryBounds(selectedParcel.geometry);
@@ -424,6 +459,7 @@ export function QuickMapCanvas() {
   }, [selectedParcel?.llUuid]);
 
   useEffect(() => {
+    if (isExportView) return;
     const map = mapRef.current;
     if (!map || !selectedParcel?.centroid || selectedParcel.geometry) return;
     map.flyTo({

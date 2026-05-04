@@ -82,6 +82,15 @@ select {
   background: #fff;
 }
 
+.export-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: #16324f;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .export-only-map-panel {
   min-height: 100vh;
   border: 0;
