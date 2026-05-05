@@ -11,6 +11,12 @@ export type ExportSessionPayload = {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   mapView: { center: [number, number]; zoom: number };
+  terrainSettings: {
+    contourOpacity: number;
+    hillshade: boolean;
+    sourceStatus: "idle" | "loading" | "ready" | "error";
+    sourceMessage: string;
+  };
   exportMeta: {
     projectTitle: string;
     projectNumber: string;
@@ -34,6 +40,7 @@ export function createExportSessionPayload(options?: { basemap?: BasemapKey }): 
     selectedParcel: quickSiteState.selectedParcel,
     neighbors: quickSiteState.neighbors,
     mapView: quickSiteState.mapView,
+    terrainSettings: quickSiteState.terrainSettings,
     exportMeta: quickSiteState.exportMeta,
     layerVisibility: quickSiteState.layerVisibility,
     drawings: drawingState.drawings,

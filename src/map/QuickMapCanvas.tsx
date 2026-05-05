@@ -9,7 +9,9 @@ import { useDrawingStore } from "../state/drawingStore";
 import { getBasemapDefinition } from "./basemapRegistry";
 import { buildMapLayers } from "./mapLayers";
 import { registerMapLayers } from "./mapLayerManager";
+import { registerTerrainOverlays } from "./terrainLayerManager";
 import { geometryBounds } from "./mapUtils";
+import { USGS_CONTOUR_SOURCE_ID } from "./usgsTerrainSources";
 
 const defaultCenter: [number, number] = [
   Number(import.meta.env.VITE_DEFAULT_CENTER_LNG ?? -104.897322),
@@ -41,6 +43,8 @@ export function QuickMapCanvas() {
     mapView,
     mapFocusRequest,
     clearMapFocusRequest,
+    terrainSettings,
+    setTerrainSettings,
     setMapView,
     layerVisibility,
     setSelectedParcel,
@@ -99,6 +103,10 @@ export function QuickMapCanvas() {
 
   function syncAppLayers(map: maplibregl.Map) {
     if (!map.isStyleLoaded()) return;
+    registerTerrainOverlays(map, {
+      contoursVisible: Boolean(useQuickSiteStore.getState().layerVisibility.contours),
+      contourOpacity: useQuickSiteStore.getState().terrainSettings.contourOpacity,
+    });
     registerMapLayers(map, layersRef.current);
   }
 
@@ -246,6 +254,31 @@ export function QuickMapCanvas() {
       setMapView({
         center: [map.getCenter().lng, map.getCenter().lat],
         zoom: map.getZoom(),
+      });
+    });
+
+    map.on("sourcedata", (event) => {
+      if (event.sourceId !== USGS_CONTOUR_SOURCE_ID) return;
+      if (!useQuickSiteStore.getState().layerVisibility.contours) return;
+      if (event.isSourceLoaded) {
+        setTerrainSettings({
+          sourceStatus: "ready",
+          sourceMessage: "USGS contour overlay ready.",
+        });
+      } else {
+        setTerrainSettings({
+          sourceStatus: "loading",
+          sourceMessage: "Loading USGS contour overlay...",
+        });
+      }
+    });
+
+    map.on("error", (event) => {
+      const sourceId = (event as { sourceId?: string }).sourceId;
+      if (sourceId !== USGS_CONTOUR_SOURCE_ID) return;
+      setTerrainSettings({
+        sourceStatus: "error",
+        sourceMessage: "Terrain summary unavailable.",
       });
     });
 
@@ -445,6 +478,27 @@ export function QuickMapCanvas() {
     syncAppLayers(map);
     scheduleExportReady(map);
   }, [layers]);
+
+  useEffect(() => {
+    const contoursVisible = Boolean(useQuickSiteStore.getState().layerVisibility.contours);
+    if (!contoursVisible) {
+      setTerrainSettings({
+        sourceStatus: "idle",
+        sourceMessage: "Contours off.",
+      });
+      return;
+    }
+
+    setTerrainSettings({
+      sourceStatus: "loading",
+      sourceMessage: "Loading USGS contour overlay...",
+    });
+
+    const map = mapRef.current;
+    if (!map?.isStyleLoaded()) return;
+    syncAppLayers(map);
+    scheduleExportReady(map);
+  }, [layerVisibility.contours, terrainSettings.contourOpacity, setTerrainSettings]);
 
   useEffect(() => {
     if (isExportView) return;

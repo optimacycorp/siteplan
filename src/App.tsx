@@ -9,6 +9,7 @@ import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { SelectedParcelCard } from "./components/SelectedParcelCard";
+import { TerrainSummary } from "./components/TerrainSummary";
 import { WorkflowSteps } from "./components/WorkflowSteps";
 import { QuickMapCanvas } from "./map/QuickMapCanvas";
 import { useEffect } from "react";
@@ -106,6 +107,7 @@ export function App() {
           <SelectedParcelCard />
           <DrawingToolbar />
           <LayerPanel />
+          <TerrainSummary />
         </>
       }
       map={

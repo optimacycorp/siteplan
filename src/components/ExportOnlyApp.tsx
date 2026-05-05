@@ -24,6 +24,7 @@ export function ExportOnlyApp() {
       selectedParcel: payload.selectedParcel,
       neighbors: payload.neighbors,
       mapView: payload.mapView,
+      terrainSettings: payload.terrainSettings,
       exportMeta: payload.exportMeta,
       layerVisibility: payload.layerVisibility,
     });

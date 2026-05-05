@@ -22,6 +22,7 @@ type PrintPlanSheetProps = {
 export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
   const basemap = useQuickSiteStore((state) => state.basemap);
+  const contoursVisible = useQuickSiteStore((state) => Boolean(state.layerVisibility.contours));
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const drawings = useDrawingStore((state) => state.drawings);
 
@@ -112,13 +113,18 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
           </div>
           <div>
             <div className="print-section-title">Source</div>
-            <p>{parcel?.sourceKey || "local parcel cache"}{parcel?.sourceUrl ? " | county record available" : ""}</p>
+            <p>
+              {parcel?.sourceKey || "local parcel cache"}
+              {parcel?.sourceUrl ? " | county record available" : ""}
+              {contoursVisible ? " | USGS The National Map 3DEP contours" : ""}
+            </p>
           </div>
           <div>
             <div className="print-section-title">Disclaimer</div>
             <p>
-              Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat,
-              legal description, or construction document. Parcel data, imagery, contours, and public records should be independently verified.
+              {contoursVisible
+                ? "Contours/elevation context shown from public USGS 3DEP/The National Map sources. For planning only; verify with survey-grade field data where required."
+                : "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, and public records should be independently verified."}
             </p>
           </div>
         </div>
@@ -271,6 +277,7 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
             <p>
               {parcel?.sourceKey || "local parcel cache"}
               {parcel?.sourceUrl ? " | county record available" : ""}
+              {contoursVisible ? " | USGS The National Map 3DEP contours" : ""}
             </p>
           </div>
         </div>

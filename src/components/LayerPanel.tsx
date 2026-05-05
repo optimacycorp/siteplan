@@ -11,7 +11,8 @@ const layers = [
 ] as const;
 
 export function LayerPanel() {
-  const { basemap, layerVisibility, setBasemap, toggleLayer } = useQuickSiteStore();
+  const { basemap, layerVisibility, terrainSettings, setBasemap, toggleLayer, setTerrainSettings } =
+    useQuickSiteStore();
 
   return (
     <section className="panel-section">
@@ -65,6 +66,24 @@ export function LayerPanel() {
                 {entry.label}
               </button>
             ))}
+          </div>
+          <div className="terrain-panel">
+            <div className="print-section-title">Terrain</div>
+            <p className="muted">USGS-derived planning contours; not a survey.</p>
+            <label className="layer-toggle" htmlFor="terrain-contour-opacity">
+              <span>Contour opacity</span>
+              <input
+                id="terrain-contour-opacity"
+                max="0.9"
+                min="0.2"
+                step="0.05"
+                type="range"
+                value={terrainSettings.contourOpacity}
+                onChange={(event) =>
+                  setTerrainSettings({ contourOpacity: Number(event.target.value) })
+                }
+              />
+            </label>
           </div>
         </div>
       </details>

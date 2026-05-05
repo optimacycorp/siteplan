@@ -12,6 +12,12 @@ type QuickSiteState = {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   mapView: { center: [number, number]; zoom: number };
+  terrainSettings: {
+    contourOpacity: number;
+    hillshade: boolean;
+    sourceStatus: "idle" | "loading" | "ready" | "error";
+    sourceMessage: string;
+  };
   exportMeta: {
     projectTitle: string;
     projectNumber: string;
@@ -34,6 +40,14 @@ type QuickSiteState = {
   clearSelectedParcel: () => void;
   setNeighbors: (neighbors: ParcelNeighbor[]) => void;
   setMapView: (mapView: { center: [number, number]; zoom: number }) => void;
+  setTerrainSettings: (
+    patch: Partial<{
+      contourOpacity: number;
+      hillshade: boolean;
+      sourceStatus: "idle" | "loading" | "ready" | "error";
+      sourceMessage: string;
+    }>,
+  ) => void;
   focusMapBounds: (bounds: [[number, number], [number, number]], maxZoom?: number) => void;
   clearMapFocusRequest: () => void;
   setExportMeta: (
@@ -53,6 +67,12 @@ type QuickSiteState = {
     selectedParcel: ParcelDetail | null;
     neighbors: ParcelNeighbor[];
     mapView: { center: [number, number]; zoom: number };
+    terrainSettings: {
+      contourOpacity: number;
+      hillshade: boolean;
+      sourceStatus: "idle" | "loading" | "ready" | "error";
+      sourceMessage: string;
+    };
     exportMeta: {
       projectTitle: string;
       projectNumber: string;
@@ -83,6 +103,12 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
     zoom: 17,
   },
   mapFocusRequest: null,
+  terrainSettings: {
+    contourOpacity: 0.65,
+    hillshade: false,
+    sourceStatus: "idle",
+    sourceMessage: "Contours off.",
+  },
   exportMeta: {
     projectTitle: "Conceptual Site Plan Exhibit",
     projectNumber: "",
@@ -112,6 +138,13 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   clearSelectedParcel: () => set({ selectedParcel: null, neighbors: [] }),
   setNeighbors: (neighbors) => set({ neighbors }),
   setMapView: (mapView) => set({ mapView }),
+  setTerrainSettings: (patch) =>
+    set((state) => ({
+      terrainSettings: {
+        ...state.terrainSettings,
+        ...patch,
+      },
+    })),
   focusMapBounds: (bounds, maxZoom) =>
     set({
       mapFocusRequest: {
@@ -134,6 +167,10 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
       selectedParcel: payload.selectedParcel,
       neighbors: payload.neighbors,
       mapView: payload.mapView,
+      terrainSettings: {
+        ...state.terrainSettings,
+        ...payload.terrainSettings,
+      },
       exportMeta: {
         ...state.exportMeta,
         ...payload.exportMeta,
@@ -158,6 +195,12 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
         zoom: 17,
       },
       mapFocusRequest: null,
+      terrainSettings: {
+        contourOpacity: 0.65,
+        hillshade: false,
+        sourceStatus: "idle",
+        sourceMessage: "Contours off.",
+      },
       exportMeta: {
         ...state.exportMeta,
         projectTitle: "Conceptual Site Plan Exhibit",
