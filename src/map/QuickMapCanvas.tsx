@@ -55,6 +55,7 @@ export function QuickMapCanvas() {
     setNeighbors,
     setSelectedParcelLoading,
     setSearchError,
+    selectedParcelLoading,
   } = useQuickSiteStore();
   const {
     drawings,
@@ -412,6 +413,7 @@ export function QuickMapCanvas() {
         selectVertex(null);
         void (async () => {
           setSelectedParcelLoading(true);
+          setSearchError("");
           try {
             const clickPoint = {
               lng: event.lngLat.lng,
@@ -619,7 +621,9 @@ export function QuickMapCanvas() {
   }, [clearMapFocusPointRequest, mapFocusPointRequest]);
 
   const mapHint =
-    mode === "select"
+    selectedParcelLoading
+      ? "Locating parcel and loading nearby county data if needed…"
+      : mode === "select"
       ? selectedDrawingId
         ? "Drag blue vertices to reshape the selection. Click amber midpoint handles to insert a new vertex."
         : "Click a parcel to select it, or click a drawing to edit it."

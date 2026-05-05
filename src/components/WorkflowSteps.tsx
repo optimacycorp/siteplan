@@ -50,6 +50,7 @@ export function WorkflowSteps() {
   const fixtureMode = String(import.meta.env.VITE_USE_PARCEL_FIXTURES || "").toLowerCase() === "true";
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
   const searchError = useQuickSiteStore((state) => state.searchError);
+  const selectedParcelLoading = useQuickSiteStore((state) => state.selectedParcelLoading);
   const drawingCount = useDrawingStore((state) => state.drawings.length);
   const setSelectedParcel = useQuickSiteStore((state) => state.setSelectedParcel);
   const setNeighbors = useQuickSiteStore((state) => state.setNeighbors);
@@ -80,6 +81,11 @@ export function WorkflowSteps() {
     <section className="panel-section">
       <h2>Workflow</h2>
       <p className="muted">{currentStep.helper}</p>
+      {selectedParcelLoading ? (
+        <p className="status-message info-text">
+          Locating the parcel at the clicked point and checking nearby parcel coverage…
+        </p>
+      ) : null}
       {searchError ? <p className="status-message error-text">{searchError}</p> : null}
       <div className="workflow-steps">
         {steps.map((step, index) => (
