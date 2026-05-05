@@ -81,6 +81,7 @@ function mapFeatureToDetail(feature: OpenParcelFeature | null | undefined): Parc
     state: String(properties.state ?? ""),
     path: String(properties.path ?? ""),
     sourceKey: String((properties as { sourceKey?: string }).sourceKey ?? ""),
+    sourceLabel: String((properties.fields ?? {}).sourceLabel ?? ""),
     sourceUrl: String((properties.fields ?? {}).HYPERLINK ?? ""),
     geometry,
     centroid: Array.isArray(properties.centroid) ? properties.centroid : pickCentroid(geometry),

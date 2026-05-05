@@ -1,4 +1,5 @@
 import { useQuickSiteStore } from "../state/quickSiteStore";
+import { describeParcelSource } from "../services/parcelService";
 import { EmptyState } from "./EmptyState";
 
 export function ParcelSummary() {
@@ -52,8 +53,11 @@ export function ParcelSummary() {
               <dd>{parcel.county || "-"}</dd>
               <dt>Source</dt>
               <dd>
-                {parcel.sourceKey ||
-                  String(parcel.fields?.sourceKey ?? parcel.fields?.legacyProvider ?? "manual")}
+                {describeParcelSource(
+                  parcel.sourceKey ||
+                    String(parcel.fields?.sourceKey ?? parcel.fields?.legacyProvider ?? "manual"),
+                  parcel.sourceLabel,
+                )}
               </dd>
               <dt>Flood zone</dt>
               <dd>{parcel.floodZone || "-"}</dd>

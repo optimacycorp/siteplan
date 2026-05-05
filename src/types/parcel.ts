@@ -10,6 +10,8 @@ export type ParcelSearchResult = {
   acreage?: number;
   matchType?: "contains" | "near" | "provider";
   sourceKey?: string;
+  sourceLabel?: string;
+  providerId?: string;
   kind?: "parcel" | "geocode";
   provider?: "local-postgis" | "county-arcgis" | "state-public-parcels" | "regrid" | "none";
 };
@@ -28,6 +30,8 @@ export type ParcelDetail = {
   state: string;
   path: string;
   sourceKey?: string;
+  sourceLabel?: string;
+  providerId?: string;
   sourceUrl?: string;
   geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon | null;
   centroid: [number, number] | null;

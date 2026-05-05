@@ -1,4 +1,4 @@
-import { fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/parcelService";
+import { describeParcelSource, fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import type { ParcelDetail, ParcelSearchResult } from "../types/parcel";
 import { EmptyState } from "./EmptyState";
@@ -89,6 +89,7 @@ export function AddressSearch() {
       state: "",
       path: result.path,
       sourceKey: "",
+      sourceLabel: "Geocoded address",
       sourceUrl: "",
       geometry: null,
       centroid: result.coordinates ? [lng, lat] : null,
@@ -161,7 +162,9 @@ export function AddressSearch() {
           <details className="result-details">
             <summary>More details</summary>
             <p className="muted">{result.context || result.path || "Parcel search result"}</p>
-            <p className="muted">{result.sourceKey || result.provider || "parcel-provider"}</p>
+            <p className="muted">
+              {describeParcelSource(result.sourceKey || result.providerId || result.provider, result.sourceLabel)}
+            </p>
           </details>
         </div>
       ))}

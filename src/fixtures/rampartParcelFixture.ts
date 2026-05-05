@@ -16,6 +16,7 @@ export const rampartParcelFixture: ParcelDetail = {
   state: "CO",
   path: "",
   sourceKey: "fixture",
+  sourceLabel: "Fixture sample parcel",
   sourceUrl: "https://property.spatialest.com/co/elpaso/#/property/7333200002",
   geometry: {
     type: "MultiPolygon",
@@ -50,6 +51,7 @@ export const rampartParcelFixture: ParcelDetail = {
   centroid: [-104.896987971, 38.878426016],
   fields: {
     sourceKey: "fixture",
+    sourceLabel: "Fixture sample parcel",
     county: "El Paso",
     state: "CO",
     HYPERLINK: "https://property.spatialest.com/co/elpaso/#/property/7333200002",
@@ -94,6 +96,7 @@ export const rampartParcelSearchResults: ParcelSearchResult[] = [
     acreage: rampartParcelFixture.areaAcres,
     matchType: "provider",
     sourceKey: "fixture",
+    sourceLabel: "Fixture sample parcel",
     kind: "parcel",
     provider: "local-postgis",
   },
@@ -106,6 +109,7 @@ export const rampartParcelSearchResults: ParcelSearchResult[] = [
     score: 5000,
     coordinates: rampartParcelFixture.centroid,
     kind: "geocode",
+    sourceLabel: "Geocoded address",
     provider: "none",
   },
 ];

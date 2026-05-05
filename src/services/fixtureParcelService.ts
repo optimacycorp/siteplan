@@ -41,6 +41,7 @@ export async function fetchParcelByUuid(llUuid: string): Promise<ParcelDetail | 
       headline: "Geocoded address",
       address: "3245 Rampart Range Road, Colorado Springs, CO",
       geometry: null,
+      sourceLabel: "Fixture sample parcel",
       sourceKey: "fixture",
     };
   }

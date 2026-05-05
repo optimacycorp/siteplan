@@ -1,13 +1,10 @@
-import * as fixtureParcelService from "./fixtureParcelService";
-import * as openParcelService from "./openParcelService";
-
-const useFixtures = String(import.meta.env.VITE_USE_PARCEL_FIXTURES || "").toLowerCase() === "true";
-const implementation = useFixtures ? fixtureParcelService : openParcelService;
-
-export const {
-  searchParcels,
-  fetchParcelByUuid,
-  fetchParcelAtPoint,
-  fetchParcelCandidatesAtPoint,
-  fetchParcelNeighbors,
-} = implementation;
+export {
+  describeParcelSource,
+  fetchParcelAtPointViaRegistry as fetchParcelAtPoint,
+  fetchParcelByUuidViaRegistry as fetchParcelByUuid,
+  fetchParcelCandidatesAtPointViaRegistry as fetchParcelCandidatesAtPoint,
+  fetchParcelNeighborsViaRegistry as fetchParcelNeighbors,
+  listParcelProviders,
+  resolveSearchProvider,
+  searchParcelsViaRegistry as searchParcels,
+} from "../data/providers/parcels/providerRegistry";

@@ -32,9 +32,13 @@ The client prefers the parcel proxy variables:
 ```env
 VITE_PARCEL_PROXY_BASE_URL=/parcels/
 VITE_REGRID_PROXY_BASE_URL=/parcels/ # legacy compatibility only
+VITE_DEFAULT_PARCEL_PROVIDER=auto
+VITE_FULTON_PARCEL_QUERY_URL=
 ```
 
 Use `VITE_USE_PARCEL_FIXTURES=true` for local UI work without live parcel services.
+Use `VITE_FULTON_PARCEL_QUERY_URL` to enable the Fulton County ArcGIS provider, and
+`VITE_DEFAULT_PARCEL_PROVIDER=fulton-county-ga` if you want Fulton interactions to become the default click/search provider for a Georgia deployment.
 
 Do not expose provider or Supabase secrets in browser code.
 
