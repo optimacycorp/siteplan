@@ -25,6 +25,16 @@ type OpenParcelFeature = {
   };
 };
 
+type GeocodeResponse = {
+  query: string;
+  attemptedQueries?: string[];
+  results?: Array<{
+    lat: number;
+    lng: number;
+    displayName?: string;
+  }>;
+};
+
 function buildUrl(path: string, params: Record<string, string | number | boolean | undefined>) {
   const base = proxyBaseUrl.endsWith("/") ? proxyBaseUrl : `${proxyBaseUrl}/`;
   const resolvedBase = /^https?:\/\//i.test(base)
@@ -92,6 +102,24 @@ function mapFeatureToDetail(feature: OpenParcelFeature | null | undefined): Parc
 export async function searchParcels(query: string): Promise<ParcelSearchResult[]> {
   if (!query.trim()) return [];
   return fetchJson<ParcelSearchResult[]>(buildUrl("search", { query: query.trim() }));
+}
+
+export async function geocodeAddressCandidates(query: string): Promise<ParcelSearchResult[]> {
+  if (!query.trim()) return [];
+  const response = await fetchJson<GeocodeResponse>(buildUrl("geocode", { query: query.trim() }));
+  return (response.results ?? []).map((result, index) => ({
+    llUuid: `geocode:${result.lat},${result.lng}:${index}`,
+    headline: "Use mapped address location",
+    address: result.displayName || query.trim(),
+    context: "Mapped address location",
+    path: "",
+    score: 5000 + index,
+    coordinates: [result.lng, result.lat],
+    kind: "geocode",
+    provider: "none",
+    sourceLabel: "USPS-style address geocode",
+    sourceKey: "geocode",
+  }));
 }
 
 export async function fetchParcelByUuid(llUuid: string): Promise<ParcelDetail | null> {

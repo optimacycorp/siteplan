@@ -4,6 +4,7 @@ export {
   fetchParcelByUuidViaRegistry as fetchParcelByUuid,
   fetchParcelCandidatesAtPointViaRegistry as fetchParcelCandidatesAtPoint,
   fetchParcelNeighborsViaRegistry as fetchParcelNeighbors,
+  geocodeAddressCandidatesViaRegistry as geocodeAddressCandidates,
   listParcelProviders,
   resolveSearchProvider,
   searchParcelsViaRegistry as searchParcels,

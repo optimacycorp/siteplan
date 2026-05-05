@@ -44,7 +44,9 @@ export function QuickMapCanvas() {
     neighbors,
     mapView,
     mapFocusRequest,
+    mapFocusPointRequest,
     clearMapFocusRequest,
+    clearMapFocusPointRequest,
     terrainSettings,
     setTerrainSettings,
     setMapView,
@@ -604,6 +606,17 @@ export function QuickMapCanvas() {
     });
     clearMapFocusRequest();
   }, [clearMapFocusRequest, mapFocusRequest]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapFocusPointRequest) return;
+    map.flyTo({
+      center: mapFocusPointRequest.center,
+      zoom: mapFocusPointRequest.zoom ?? Math.max(map.getZoom(), 18),
+      duration: 350,
+    });
+    clearMapFocusPointRequest();
+  }, [clearMapFocusPointRequest, mapFocusPointRequest]);
 
   const mapHint =
     mode === "select"

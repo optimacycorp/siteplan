@@ -30,6 +30,11 @@ export async function searchParcels(query: string): Promise<ParcelSearchResult[]
     : [rampartParcelSearchResults[1]];
 }
 
+export async function geocodeAddressCandidates(query: string): Promise<ParcelSearchResult[]> {
+  if (!query.trim()) return [];
+  return [rampartParcelSearchResults[1]];
+}
+
 export async function fetchParcelByUuid(llUuid: string): Promise<ParcelDetail | null> {
   if (llUuid === RAMPART_PARCEL_ID) {
     return rampartParcelFixture;

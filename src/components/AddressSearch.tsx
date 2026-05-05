@@ -1,8 +1,22 @@
-import { describeParcelSource, fetchParcelByUuid, fetchParcelNeighbors, searchParcels } from "../services/parcelService";
+import {
+  describeParcelSource,
+  fetchParcelByUuid,
+  fetchParcelNeighbors,
+  geocodeAddressCandidates,
+  searchParcels,
+} from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import type { ParcelDetail, ParcelSearchResult } from "../types/parcel";
 import { EmptyState } from "./EmptyState";
 import { InlineNotice } from "./InlineNotice";
+
+function looksLikeParcelIdentifier(query: string) {
+  const normalized = query.trim().replace(/\s+/g, "");
+  if (!normalized) return false;
+  if (/^(apn|parcel|pin)[:#\s-]/i.test(query.trim())) return true;
+  const compact = normalized.replace(/[-.]/g, "");
+  return /^\d{6,}$/.test(compact);
+}
 
 export function AddressSearch() {
   const {
@@ -17,17 +31,26 @@ export function AddressSearch() {
     setSearchError,
     setSelectedParcelLoading,
     setSelectedParcel,
+    clearSelectedParcel,
     setNeighbors,
+    focusMapPoint,
   } = useQuickSiteStore();
 
   async function runSearch() {
     setSearchLoading(true);
     setSearchError("");
     try {
-      const results = await searchParcels(searchText);
+      const query = searchText.trim();
+      const results = looksLikeParcelIdentifier(query)
+        ? await searchParcels(query)
+        : await geocodeAddressCandidates(query);
       setSearchResults(results);
       if (!results.length) {
-        setSearchError("No parcels matched that address. Try a fuller street address or ZIP code.");
+        setSearchError(
+          looksLikeParcelIdentifier(query)
+            ? "No parcels matched that parcel number or APN."
+            : "No mapped address was found. Try a fuller USPS-style street address with city and ZIP.",
+        );
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Search failed";
@@ -47,10 +70,12 @@ export function AddressSearch() {
     try {
       const result = searchResults.find((entry) => entry.llUuid === llUuid);
       if (result?.kind === "geocode") {
-        const fallbackParcel = buildGeocodePlaceholder(result);
-        setSelectedParcel(fallbackParcel);
+        clearSelectedParcel();
         setNeighbors([]);
-        setSearchError("No direct parcel match from the parcel provider. The map is centered on the address, so click the parcel manually.");
+        if (result.coordinates) {
+          focusMapPoint(result.coordinates, 18);
+        }
+        setSearchError("");
         return;
       }
 
@@ -73,33 +98,9 @@ export function AddressSearch() {
     }
   }
 
-  function buildGeocodePlaceholder(result: ParcelSearchResult): ParcelDetail {
-    const [lng, lat] = result.coordinates ?? [0, 0];
-    return {
-      llUuid: result.llUuid,
-      headline: result.address || "Geocoded address",
-      address: result.address || "Geocoded address",
-      apn: "",
-      ownerName: "",
-      zoning: "",
-      floodZone: "",
-      areaAcres: 0,
-      areaSqft: 0,
-      county: "",
-      state: "",
-      path: result.path,
-      sourceKey: "",
-      sourceLabel: "Geocoded address",
-      sourceUrl: "",
-      geometry: null,
-      centroid: result.coordinates ? [lng, lat] : null,
-      fields: {},
-    };
-  }
-
   function describeResult(result: ParcelSearchResult) {
     if (result.kind === "geocode") {
-      return "Mapped address only";
+      return "Center map and click parcel";
     }
     if (result.matchType === "contains") return "Best match";
     if (result.matchType === "near") return "Nearby parcel";
@@ -110,8 +111,8 @@ export function AddressSearch() {
     <section className="panel-section">
       <h2>1. Find property</h2>
       <p className="muted">
-        Start with the property address. If the parcel boundary is not selected automatically,
-        click the parcel on the map.
+        Enter a USPS-style address to center the map near the property, then click the parcel on the map.
+        You can still paste a parcel number or APN for direct parcel search.
       </p>
       <input
         className="search-input"

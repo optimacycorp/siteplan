@@ -122,6 +122,13 @@ export async function fetchParcelNeighborsViaRegistry(input?: ParcelNeighborsInp
   return getPreferredInteractiveProvider().fetchParcelNeighbors(input);
 }
 
+export async function geocodeAddressCandidatesViaRegistry(query: string) {
+  if (useFixtures) {
+    return fixtureParcelService.geocodeAddressCandidates(query);
+  }
+  return openParcelService.geocodeAddressCandidates(query);
+}
+
 export function describeParcelSource(sourceKey?: string | null, sourceLabel?: string | null) {
   if (sourceLabel) return sourceLabel;
   const normalized = normalizeText(sourceKey || "");

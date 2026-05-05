@@ -31,6 +31,7 @@ type QuickSiteState = {
   };
   layerVisibility: Record<string, boolean>;
   mapFocusRequest: { key: string; bounds: [[number, number], [number, number]]; maxZoom?: number } | null;
+  mapFocusPointRequest: { key: string; center: [number, number]; zoom?: number } | null;
   setBasemap: (basemap: BasemapKey) => void;
   setSearchText: (searchText: string) => void;
   setSearchResults: (results: ParcelSearchResult[]) => void;
@@ -51,7 +52,9 @@ type QuickSiteState = {
     }>,
   ) => void;
   focusMapBounds: (bounds: [[number, number], [number, number]], maxZoom?: number) => void;
+  focusMapPoint: (center: [number, number], zoom?: number) => void;
   clearMapFocusRequest: () => void;
+  clearMapFocusPointRequest: () => void;
   setExportMeta: (
     patch: Partial<{
       projectTitle: string;
@@ -106,6 +109,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
     zoom: 17,
   },
   mapFocusRequest: null,
+  mapFocusPointRequest: null,
   terrainSettings: {
     contourOpacity: 0.65,
     contourUnits: "feet",
@@ -157,7 +161,16 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
         maxZoom,
       },
     }),
+  focusMapPoint: (center, zoom) =>
+    set({
+      mapFocusPointRequest: {
+        key: crypto.randomUUID(),
+        center,
+        zoom,
+      },
+    }),
   clearMapFocusRequest: () => set({ mapFocusRequest: null }),
+  clearMapFocusPointRequest: () => set({ mapFocusPointRequest: null }),
   setExportMeta: (patch) =>
     set((state) => ({
       exportMeta: {
@@ -199,6 +212,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
         zoom: 17,
       },
       mapFocusRequest: null,
+      mapFocusPointRequest: null,
       terrainSettings: {
         contourOpacity: 0.65,
         contourUnits: "feet",
