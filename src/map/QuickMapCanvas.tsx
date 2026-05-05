@@ -41,6 +41,7 @@ export function QuickMapCanvas() {
   const {
     basemap,
     selectedParcel,
+    activeParcelProviderId,
     neighbors,
     mapView,
     mapFocusRequest,
@@ -419,7 +420,10 @@ export function QuickMapCanvas() {
               lng: event.lngLat.lng,
               lat: event.lngLat.lat,
             };
-            const candidates = await fetchParcelCandidatesAtPoint(clickPoint);
+            const candidates = await fetchParcelCandidatesAtPoint({
+              ...clickPoint,
+              providerId: activeParcelProviderId || undefined,
+            });
             const detail = candidates[0] ?? null;
             if (!detail) {
               setSearchError(
@@ -436,6 +440,7 @@ export function QuickMapCanvas() {
                   lng: detail.centroid[0],
                   lat: detail.centroid[1],
                   excludeLlUuid: detail.llUuid,
+                  providerId: detail.providerId || activeParcelProviderId || undefined,
                 }),
               );
             } else {

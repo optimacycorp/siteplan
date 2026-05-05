@@ -3,6 +3,7 @@ import {
   fetchParcelByUuid,
   fetchParcelNeighbors,
   geocodeAddressCandidates,
+  resolveSearchProvider,
   searchParcels,
 } from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
@@ -31,6 +32,7 @@ export function AddressSearch() {
     setSearchError,
     setSelectedParcelLoading,
     setSelectedParcel,
+    setActiveParcelProviderId,
     clearSelectedParcel,
     setNeighbors,
     focusMapPoint,
@@ -41,6 +43,8 @@ export function AddressSearch() {
     setSearchError("");
     try {
       const query = searchText.trim();
+      const provider = resolveSearchProvider(query);
+      setActiveParcelProviderId(provider.id);
       const results = looksLikeParcelIdentifier(query)
         ? await searchParcels(query)
         : await geocodeAddressCandidates(query);
@@ -72,6 +76,7 @@ export function AddressSearch() {
       if (result?.kind === "geocode") {
         clearSelectedParcel();
         setNeighbors([]);
+        setActiveParcelProviderId(result.providerId || resolveSearchProvider(searchText).id);
         if (result.coordinates) {
           focusMapPoint(result.coordinates, 18);
         }
@@ -81,6 +86,7 @@ export function AddressSearch() {
 
       const detail = await fetchParcelByUuid(llUuid);
       setSelectedParcel(detail);
+      setActiveParcelProviderId(detail?.providerId || result?.providerId || null);
       setNeighbors([]);
       if (detail?.centroid) {
         setNeighbors(
@@ -88,6 +94,7 @@ export function AddressSearch() {
             lng: detail.centroid[0],
             lat: detail.centroid[1],
             excludeLlUuid: detail.llUuid,
+            providerId: detail.providerId || result?.providerId || undefined,
           }),
         );
       }

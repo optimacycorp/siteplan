@@ -10,6 +10,7 @@ type QuickSiteState = {
   searchError: string;
   selectedParcelLoading: boolean;
   selectedParcel: ParcelDetail | null;
+  activeParcelProviderId: string | null;
   neighbors: ParcelNeighbor[];
   mapView: { center: [number, number]; zoom: number };
   terrainSettings: {
@@ -39,6 +40,7 @@ type QuickSiteState = {
   setSearchError: (message: string) => void;
   setSelectedParcelLoading: (loading: boolean) => void;
   setSelectedParcel: (parcel: ParcelDetail | null) => void;
+  setActiveParcelProviderId: (providerId: string | null) => void;
   clearSelectedParcel: () => void;
   setNeighbors: (neighbors: ParcelNeighbor[]) => void;
   setMapView: (mapView: { center: [number, number]; zoom: number }) => void;
@@ -103,6 +105,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   searchError: "",
   selectedParcelLoading: false,
   selectedParcel: null,
+  activeParcelProviderId: null,
   neighbors: [],
   mapView: {
     center: [-104.897322, 38.87837],
@@ -143,6 +146,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   setSearchError: (searchError) => set({ searchError }),
   setSelectedParcelLoading: (selectedParcelLoading) => set({ selectedParcelLoading }),
   setSelectedParcel: (selectedParcel) => set({ selectedParcel }),
+  setActiveParcelProviderId: (activeParcelProviderId) => set({ activeParcelProviderId }),
   clearSelectedParcel: () => set({ selectedParcel: null, neighbors: [] }),
   setNeighbors: (neighbors) => set({ neighbors }),
   setMapView: (mapView) => set({ mapView }),
@@ -206,6 +210,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
       searchError: "",
       selectedParcelLoading: false,
       selectedParcel: null,
+      activeParcelProviderId: null,
       neighbors: [],
       mapView: {
         center: [-104.897322, 38.87837],

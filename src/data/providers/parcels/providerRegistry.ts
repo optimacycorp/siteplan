@@ -69,8 +69,10 @@ function getProviderById(id: string | undefined | null) {
   return providerMap.get(id.toLowerCase()) ?? null;
 }
 
-function getPreferredInteractiveProvider() {
+function getPreferredInteractiveProvider(providerId?: string | null) {
   if (useFixtures) return fixtureProvider;
+  const explicit = getProviderById(providerId);
+  if (explicit) return explicit;
   const configured = getProviderById(defaultProviderPreference);
   if (configured) return configured;
   return proxyProvider;
@@ -111,15 +113,18 @@ export async function fetchParcelByUuidViaRegistry(llUuid: string) {
 }
 
 export async function fetchParcelAtPointViaRegistry(input: ParcelPointInput) {
-  return getPreferredInteractiveProvider().fetchParcelAtPoint(input);
+  return getPreferredInteractiveProvider(input.providerId)
+    .fetchParcelAtPoint(input);
 }
 
 export async function fetchParcelCandidatesAtPointViaRegistry(input: ParcelPointInput) {
-  return getPreferredInteractiveProvider().fetchParcelCandidatesAtPoint(input);
+  return getPreferredInteractiveProvider(input.providerId)
+    .fetchParcelCandidatesAtPoint(input);
 }
 
 export async function fetchParcelNeighborsViaRegistry(input?: ParcelNeighborsInput) {
-  return getPreferredInteractiveProvider().fetchParcelNeighbors(input);
+  return getPreferredInteractiveProvider(input?.providerId)
+    .fetchParcelNeighbors(input);
 }
 
 export async function geocodeAddressCandidatesViaRegistry(query: string) {

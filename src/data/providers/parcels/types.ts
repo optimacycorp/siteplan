@@ -3,6 +3,7 @@ import type { ParcelDetail, ParcelNeighbor, ParcelSearchResult } from "../../../
 export type ParcelPointInput = {
   lat: number;
   lng: number;
+  providerId?: string | null;
 };
 
 export type ParcelNeighborsInput = ParcelPointInput & {
