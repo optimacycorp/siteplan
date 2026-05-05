@@ -11,8 +11,9 @@ export type ExportSessionPayload = {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   mapView: { center: [number, number]; zoom: number };
-  terrainSettings: {
+  terrainSettings?: {
     contourOpacity: number;
+    contourUnits: "feet" | "meters";
     hillshade: boolean;
     sourceStatus: "idle" | "loading" | "ready" | "error";
     sourceMessage: string;

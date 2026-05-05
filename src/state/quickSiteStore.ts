@@ -14,6 +14,7 @@ type QuickSiteState = {
   mapView: { center: [number, number]; zoom: number };
   terrainSettings: {
     contourOpacity: number;
+    contourUnits: "feet" | "meters";
     hillshade: boolean;
     sourceStatus: "idle" | "loading" | "ready" | "error";
     sourceMessage: string;
@@ -43,6 +44,7 @@ type QuickSiteState = {
   setTerrainSettings: (
     patch: Partial<{
       contourOpacity: number;
+      contourUnits: "feet" | "meters";
       hillshade: boolean;
       sourceStatus: "idle" | "loading" | "ready" | "error";
       sourceMessage: string;
@@ -67,8 +69,9 @@ type QuickSiteState = {
     selectedParcel: ParcelDetail | null;
     neighbors: ParcelNeighbor[];
     mapView: { center: [number, number]; zoom: number };
-    terrainSettings: {
+    terrainSettings?: {
       contourOpacity: number;
+      contourUnits: "feet" | "meters";
       hillshade: boolean;
       sourceStatus: "idle" | "loading" | "ready" | "error";
       sourceMessage: string;
@@ -105,6 +108,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
   mapFocusRequest: null,
   terrainSettings: {
     contourOpacity: 0.65,
+    contourUnits: "feet",
     hillshade: false,
     sourceStatus: "idle",
     sourceMessage: "Contours off.",
@@ -169,7 +173,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
       mapView: payload.mapView,
       terrainSettings: {
         ...state.terrainSettings,
-        ...payload.terrainSettings,
+        ...(payload.terrainSettings ?? {}),
       },
       exportMeta: {
         ...state.exportMeta,
@@ -197,6 +201,7 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
       mapFocusRequest: null,
       terrainSettings: {
         contourOpacity: 0.65,
+        contourUnits: "feet",
         hillshade: false,
         sourceStatus: "idle",
         sourceMessage: "Contours off.",

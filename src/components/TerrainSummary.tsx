@@ -30,6 +30,8 @@ export function TerrainSummary() {
       <dl className="summary-grid">
         <dt>Source</dt>
         <dd>USGS 3DEP / The National Map</dd>
+        <dt>Contour units</dt>
+        <dd>{terrainSettings.contourUnits}</dd>
         <dt>Status</dt>
         <dd>{terrainSettings.sourceStatus}</dd>
         <dt>Relief</dt>

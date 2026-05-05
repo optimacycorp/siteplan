@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl, { LngLatBounds } from "maplibre-gl";
 import {
   fetchParcelCandidatesAtPoint,
   fetchParcelNeighbors,
 } from "../services/parcelService";
+import { fetchTerrainContours } from "../services/terrainService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
 import { getBasemapDefinition } from "./basemapRegistry";
@@ -25,6 +26,7 @@ export function QuickMapCanvas() {
     new URLSearchParams(window.location.search).get("export") === "1";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [terrainContours, setTerrainContours] = useState<GeoJSON.FeatureCollection | null>(null);
   const modeRef = useRef(useDrawingStore.getState().mode);
   const layersRef = useRef<ReturnType<typeof buildMapLayers>>([]);
   const suppressClickRef = useRef(false);
@@ -106,6 +108,8 @@ export function QuickMapCanvas() {
     registerTerrainOverlays(map, {
       contoursVisible: Boolean(useQuickSiteStore.getState().layerVisibility.contours),
       contourOpacity: useQuickSiteStore.getState().terrainSettings.contourOpacity,
+      contourUnits: useQuickSiteStore.getState().terrainSettings.contourUnits,
+      contourFeatures: terrainContours,
     });
     registerMapLayers(map, layersRef.current);
   }
@@ -118,6 +122,14 @@ export function QuickMapCanvas() {
 
   function scheduleExportReady(map: maplibregl.Map) {
     if (!isExportView || exportReadyDispatchedRef.current) return;
+    const storeState = useQuickSiteStore.getState();
+    if (
+      storeState.layerVisibility.contours &&
+      storeState.terrainSettings.contourUnits === "feet" &&
+      storeState.terrainSettings.sourceStatus !== "ready"
+    ) {
+      return;
+    }
 
     const notifyWhenIdle = () => {
       window.setTimeout(() => {
@@ -482,6 +494,7 @@ export function QuickMapCanvas() {
   useEffect(() => {
     const contoursVisible = Boolean(useQuickSiteStore.getState().layerVisibility.contours);
     if (!contoursVisible) {
+      setTerrainContours(null);
       setTerrainSettings({
         sourceStatus: "idle",
         sourceMessage: "Contours off.",
@@ -489,16 +502,72 @@ export function QuickMapCanvas() {
       return;
     }
 
-    setTerrainSettings({
-      sourceStatus: "loading",
-      sourceMessage: "Loading USGS contour overlay...",
-    });
+    if (terrainSettings.contourUnits === "meters") {
+      setTerrainContours(null);
+      setTerrainSettings({
+        sourceStatus: "ready",
+        sourceMessage: "USGS contour raster overlay ready.",
+      });
+      const map = mapRef.current;
+      if (map?.isStyleLoaded()) {
+        syncAppLayers(map);
+        scheduleExportReady(map);
+      }
+      return;
+    }
 
     const map = mapRef.current;
-    if (!map?.isStyleLoaded()) return;
-    syncAppLayers(map);
-    scheduleExportReady(map);
-  }, [layerVisibility.contours, terrainSettings.contourOpacity, setTerrainSettings]);
+    if (!map) return;
+    const bounds = map.getBounds();
+    const bbox: [number, number, number, number] = [
+      bounds.getWest(),
+      bounds.getSouth(),
+      bounds.getEast(),
+      bounds.getNorth(),
+    ];
+    const controller = new AbortController();
+    setTerrainSettings({
+      sourceStatus: "loading",
+      sourceMessage: "Loading USGS contour overlay in feet...",
+    });
+
+    void fetchTerrainContours({
+      bbox,
+      units: "feet",
+      signal: controller.signal,
+    })
+      .then((featureCollection) => {
+        setTerrainContours(featureCollection);
+        setTerrainSettings({
+          sourceStatus: "ready",
+          sourceMessage: `USGS contour overlay ready (${featureCollection.features.length} contours).`,
+        });
+        const activeMap = mapRef.current;
+        if (activeMap?.isStyleLoaded()) {
+          syncAppLayers(activeMap);
+          scheduleExportReady(activeMap);
+        }
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setTerrainContours({ type: "FeatureCollection", features: [] });
+        setTerrainSettings({
+          sourceStatus: "error",
+          sourceMessage: error instanceof Error ? error.message : "Terrain summary unavailable.",
+        });
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [
+    layerVisibility.contours,
+    mapView.center,
+    mapView.zoom,
+    terrainSettings.contourOpacity,
+    terrainSettings.contourUnits,
+    setTerrainSettings,
+  ]);
 
   useEffect(() => {
     if (isExportView) return;

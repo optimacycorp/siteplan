@@ -23,6 +23,7 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
   const basemap = useQuickSiteStore((state) => state.basemap);
   const contoursVisible = useQuickSiteStore((state) => Boolean(state.layerVisibility.contours));
+  const contourUnits = useQuickSiteStore((state) => state.terrainSettings.contourUnits);
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const drawings = useDrawingStore((state) => state.drawings);
 
@@ -116,14 +117,14 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
             <p>
               {parcel?.sourceKey || "local parcel cache"}
               {parcel?.sourceUrl ? " | county record available" : ""}
-              {contoursVisible ? " | USGS The National Map 3DEP contours" : ""}
+              {contoursVisible ? ` | USGS The National Map 3DEP contours (${contourUnits})` : ""}
             </p>
           </div>
           <div>
             <div className="print-section-title">Disclaimer</div>
             <p>
               {contoursVisible
-                ? "Contours/elevation context shown from public USGS 3DEP/The National Map sources. For planning only; verify with survey-grade field data where required."
+                ? `Contours/elevation context shown from public USGS 3DEP/The National Map sources in ${contourUnits}. For planning only; verify with survey-grade field data where required.`
                 : "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, and public records should be independently verified."}
             </p>
           </div>
@@ -277,7 +278,7 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
             <p>
               {parcel?.sourceKey || "local parcel cache"}
               {parcel?.sourceUrl ? " | county record available" : ""}
-              {contoursVisible ? " | USGS The National Map 3DEP contours" : ""}
+              {contoursVisible ? ` | USGS The National Map 3DEP contours (${contourUnits})` : ""}
             </p>
           </div>
         </div>

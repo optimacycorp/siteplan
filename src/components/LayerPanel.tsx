@@ -70,6 +70,22 @@ export function LayerPanel() {
           <div className="terrain-panel">
             <div className="print-section-title">Terrain</div>
             <p className="muted">USGS-derived planning contours; not a survey.</p>
+            <label className="field-label" htmlFor="terrain-contour-units">
+              Contour units
+            </label>
+            <select
+              className="search-input"
+              id="terrain-contour-units"
+              value={terrainSettings.contourUnits}
+              onChange={(event) =>
+                setTerrainSettings({
+                  contourUnits: event.target.value === "meters" ? "meters" : "feet",
+                })
+              }
+            >
+              <option value="feet">Feet</option>
+              <option value="meters">Meters</option>
+            </select>
             <label className="layer-toggle" htmlFor="terrain-contour-opacity">
               <span>Contour opacity</span>
               <input

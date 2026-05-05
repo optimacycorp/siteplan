@@ -4,6 +4,7 @@ import { PARCEL_PROVIDERS } from "./parcelProviders/types.mjs";
 import { createRegridLegacyProvider, HttpError } from "./parcelProviders/regridLegacyProvider.mjs";
 import { createLocalPostgisProvider } from "./parcelProviders/localPostgisProvider.mjs";
 import { importElPasoParcelsOnDemand } from "../scripts/parcel-loaders/load-el-paso-county-parcels.mjs";
+import { fetchUsgsContourGeoJson } from "./usgsTerrainProxy.mjs";
 
 const port = Number(process.env.PORT || 8787);
 const requestTimeoutMs = Number(process.env.REGRID_REQUEST_TIMEOUT_MS || 15000);
@@ -97,6 +98,16 @@ function sendText(response, statusCode, body) {
     "Cache-Control": "no-store",
   });
   response.end(body);
+}
+
+function parseBbox(value) {
+  const parts = String(value || "")
+    .split(",")
+    .map((part) => Number(part.trim()));
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) {
+    return null;
+  }
+  return parts;
 }
 
 function normalizeText(value) {
@@ -599,6 +610,22 @@ async function handleGeocode(requestUrl, response, signal) {
   });
 }
 
+async function handleTerrainContours(requestUrl, response, signal) {
+  const bbox = parseBbox(requestUrl.searchParams.get("bbox"));
+  if (!bbox) {
+    sendJson(response, 400, { error: "bbox is required as minLng,minLat,maxLng,maxLat" });
+    return;
+  }
+
+  const units = /^meters$/i.test(requestUrl.searchParams.get("units") || "") ? "meters" : "feet";
+  const featureCollection = await fetchUsgsContourGeoJson({
+    bbox,
+    units,
+    signal,
+  });
+  sendJson(response, 200, featureCollection);
+}
+
 async function handleParcelLookup(requestUrl, response, signal) {
   const lat = Number(requestUrl.searchParams.get("lat"));
   const lng = Number(requestUrl.searchParams.get("lng"));
@@ -933,6 +960,11 @@ export function startOpenParcelProxy() {
 
       if (requestUrl.pathname === "/debug/search-diagnostics") {
         await handleDebugSearchDiagnostics(requestUrl, response, request.signal);
+        return;
+      }
+
+      if (requestUrl.pathname === "/terrain/contours") {
+        await handleTerrainContours(requestUrl, response, request.signal);
         return;
       }
 
