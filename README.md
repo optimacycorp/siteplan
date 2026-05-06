@@ -35,6 +35,8 @@ VITE_REGRID_PROXY_BASE_URL=/parcels/ # legacy compatibility only
 VITE_DEFAULT_PARCEL_PROVIDER=auto
 VITE_FULTON_PARCEL_QUERY_URL=https://gismaps.fultoncountyga.gov/arcgispub/rest/services/Basemap/FultonStreetBaseMap/MapServer/85/query
 VITE_MARICOPA_PARCEL_QUERY_URL=https://gis.mcassessor.maricopa.gov/arcgis/rest/services/Parcels/MapServer/0/query
+VITE_MARICOPA_CLICK_TOLERANCE_METERS=120
+VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS=240
 ```
 
 Use `VITE_USE_PARCEL_FIXTURES=true` for local UI work without live parcel services.
@@ -42,6 +44,7 @@ Use `VITE_FULTON_PARCEL_QUERY_URL` to enable the Fulton County ArcGIS provider, 
 `VITE_DEFAULT_PARCEL_PROVIDER=fulton-county-ga` if you want Fulton interactions to become the default click/search provider for a Georgia deployment.
 Use `VITE_MARICOPA_PARCEL_QUERY_URL` to enable the Maricopa County Assessor parcel provider, and
 `VITE_DEFAULT_PARCEL_PROVIDER=maricopa-county-az` if you want Phoenix-area interactions to become the default click/search provider for an Arizona deployment.
+Use `VITE_MARICOPA_CLICK_TOLERANCE_METERS` to control the first nearby parcel search pass in Maricopa County, and `VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS` to control the wider retry envelope when the first pass still misses.
 
 Do not expose provider or Supabase secrets in browser code.
 

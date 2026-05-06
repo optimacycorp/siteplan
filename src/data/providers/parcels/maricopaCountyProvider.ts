@@ -14,6 +14,11 @@ const providerLabel = "Maricopa County Assessor";
 const defaultMaricopaQueryEndpoint =
   "https://gis.mcassessor.maricopa.gov/arcgis/rest/services/Parcels/MapServer/0/query";
 const queryEndpoint = String(import.meta.env.VITE_MARICOPA_PARCEL_QUERY_URL || defaultMaricopaQueryEndpoint).trim();
+const fallbackEnvelopeRadiusMeters = Number(import.meta.env.VITE_MARICOPA_CLICK_TOLERANCE_METERS || 120);
+const expandedEnvelopeRadiusMeters = Math.max(
+  fallbackEnvelopeRadiusMeters * 2,
+  Number(import.meta.env.VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS || 240),
+);
 const proxyBaseUrl =
   import.meta.env.VITE_PARCEL_PROXY_BASE_URL ??
   import.meta.env.VITE_REGRID_PROXY_BASE_URL ??
@@ -370,8 +375,12 @@ async function findBestDetailsForPoint(input: ParcelPointInput, limit = 8) {
   const direct = await queryByPoint(input, limit);
   let details = mapFeaturesToDetails(direct);
   if (!details.length) {
-    const nearby = await queryByEnvelope(input, Math.max(limit, 10), 30);
+    const nearby = await queryByEnvelope(input, Math.max(limit, 10), fallbackEnvelopeRadiusMeters);
     details = mapFeaturesToDetails(nearby);
+  }
+  if (!details.length && expandedEnvelopeRadiusMeters > fallbackEnvelopeRadiusMeters) {
+    const expanded = await queryByEnvelope(input, Math.max(limit, 14), expandedEnvelopeRadiusMeters);
+    details = mapFeaturesToDetails(expanded);
   }
   return details.sort((left, right) => scoreDetailForPoint(left, input) - scoreDetailForPoint(right, input));
 }
