@@ -2,6 +2,7 @@ import * as fixtureParcelService from "../../../services/fixtureParcelService";
 import * as openParcelService from "../../../services/openParcelService";
 import type { ParcelDetail, ParcelNeighbor, ParcelSearchResult } from "../../../types/parcel";
 import { fultonCountyProvider } from "./fultonCountyProvider";
+import { maricopaCountyProvider } from "./maricopaCountyProvider";
 import {
   type ParcelNeighborsInput,
   type ParcelPointInput,
@@ -54,6 +55,7 @@ const providerMap = new Map<string, ParcelProvider>([
   [fixtureProvider.id, fixtureProvider],
   [proxyProvider.id, proxyProvider],
   [fultonCountyProvider.id, fultonCountyProvider],
+  [maricopaCountyProvider.id, maricopaCountyProvider],
 ]);
 
 function normalizeText(value: string) {
@@ -89,6 +91,9 @@ export function resolveSearchProvider(query: string) {
   if (/^fulton:/i.test(trimmed) || looksLikeFultonSearch(trimmed)) {
     return fultonCountyProvider;
   }
+  if (/^maricopa:/i.test(trimmed) || maricopaCountyProvider.supportsQuery?.(trimmed)) {
+    return maricopaCountyProvider;
+  }
   if (defaultProviderPreference !== "auto") {
     const configured = getProviderById(defaultProviderPreference);
     if (configured) return configured;
@@ -98,6 +103,7 @@ export function resolveSearchProvider(query: string) {
 
 export function resolveProviderForParcelId(llUuid: string) {
   if (/^fulton:/i.test(llUuid)) return fultonCountyProvider;
+  if (/^maricopa:/i.test(llUuid)) return maricopaCountyProvider;
   if (/^fixture-/i.test(llUuid) || /^geocode:/i.test(llUuid) && useFixtures) return fixtureProvider;
   return getPreferredInteractiveProvider();
 }
@@ -151,6 +157,10 @@ export function describeParcelSource(sourceKey?: string | null, sourceLabel?: st
     case "fulton county gis":
     case "fulton-county-ga":
       return "Fulton County GIS";
+    case "maricopa county az":
+    case "maricopa county assessor":
+    case "maricopa-county-az":
+      return "Maricopa County Assessor";
     default:
       return sourceKey || "Parcel provider";
   }
