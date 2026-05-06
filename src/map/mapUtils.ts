@@ -18,6 +18,44 @@ export function geometryBounds(
   return [[minLng, minLat], [maxLng, maxLat]];
 }
 
+function pointInRing(point: [number, number], ring: number[][]) {
+  const [lng, lat] = point;
+  let inside = false;
+  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
+    const [xi, yi] = ring[index];
+    const [xj, yj] = ring[previous];
+    const intersects =
+      yi > lat !== yj > lat &&
+      lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+    if (intersects) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function pointInPolygon(point: [number, number], polygon: number[][][]) {
+  if (!polygon.length) return false;
+  if (!pointInRing(point, polygon[0])) return false;
+  for (let index = 1; index < polygon.length; index += 1) {
+    if (pointInRing(point, polygon[index])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function geometryContainsPoint(
+  geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon | null,
+  point: [number, number],
+) {
+  if (!geometry) return false;
+  if (geometry.type === "Polygon") {
+    return pointInPolygon(point, geometry.coordinates as number[][][]);
+  }
+  return geometry.coordinates.some((polygon) => pointInPolygon(point, polygon as number[][][]));
+}
+
 export function pointBounds(points: Array<{ lng: number; lat: number }>): [[number, number], [number, number]] | null {
   if (!points.length) return null;
   let minLng = Infinity;

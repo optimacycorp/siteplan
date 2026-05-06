@@ -235,6 +235,10 @@ function shapeAreaSquareMetersToAcres(shapeArea: number) {
   return shapeArea * 0.00024710538146717;
 }
 
+function squareFeetToAcres(squareFeet: number) {
+  return squareFeet / 43_560;
+}
+
 function mapFeatureToDetail(feature: ArcGisFeature): ParcelDetail {
   const objectId = String(pickAttribute(feature, "OBJECTID", "objectid", "objectId"));
   const apn = String(pickAttribute(feature, "APN", "APN_DASH", "BOOK", "MAP", "ITEM"));
@@ -244,8 +248,13 @@ function mapFeatureToDetail(feature: ArcGisFeature): ParcelDetail {
   const centroid = centroidFromFeature(feature);
   const landSize = Number(pickAttribute(feature, "LAND_SIZE"));
   const shapeArea = Number(pickAttribute(feature, "Shape_Area", "shape_area"));
-  const areaAcres = Number.isFinite(landSize) && landSize > 0
+  const areaSqft = Number.isFinite(landSize) && landSize > 0
     ? landSize
+    : Number.isFinite(shapeArea) && shapeArea > 0
+      ? shapeArea * 10.7639
+      : 0;
+  const areaAcres = areaSqft > 0
+    ? squareFeetToAcres(areaSqft)
     : Number.isFinite(shapeArea) && shapeArea > 0
       ? shapeAreaSquareMetersToAcres(shapeArea)
       : 0;
@@ -263,7 +272,7 @@ function mapFeatureToDetail(feature: ArcGisFeature): ParcelDetail {
     zoning: String(pickAttribute(feature, "CITY_ZONING")),
     floodZone: "",
     areaAcres,
-    areaSqft: 0,
+    areaSqft,
     county: "Maricopa",
     state: "AZ",
     path: "",

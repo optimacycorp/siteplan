@@ -12,7 +12,7 @@ import { getBasemapDefinition } from "./basemapRegistry";
 import { buildMapLayers } from "./mapLayers";
 import { registerMapLayers } from "./mapLayerManager";
 import { registerTerrainOverlays } from "./terrainLayerManager";
-import { geometryBounds } from "./mapUtils";
+import { geometryBounds, geometryContainsPoint } from "./mapUtils";
 import { USGS_CONTOUR_SOURCE_ID } from "./usgsTerrainSources";
 
 const defaultCenter: [number, number] = [
@@ -421,6 +421,23 @@ export function QuickMapCanvas() {
               lng: event.lngLat.lng,
               lat: event.lngLat.lat,
             };
+            if (
+              selectedParcel?.geometry &&
+              geometryContainsPoint(selectedParcel.geometry, [clickPoint.lng, clickPoint.lat])
+            ) {
+              setSearchError("");
+              if (selectedParcel.centroid) {
+                setNeighbors(
+                  await fetchParcelNeighbors({
+                    lng: selectedParcel.centroid[0],
+                    lat: selectedParcel.centroid[1],
+                    excludeLlUuid: selectedParcel.llUuid,
+                    providerId: selectedParcel.providerId || activeParcelProviderId || undefined,
+                  }),
+                );
+              }
+              return;
+            }
             const candidates = await fetchParcelCandidatesAtPoint({
               ...clickPoint,
               providerId: activeParcelProviderId || undefined,
