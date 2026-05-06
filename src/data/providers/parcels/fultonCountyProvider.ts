@@ -40,6 +40,14 @@ type ArcGisQueryResponse = {
   features?: ArcGisFeature[];
 };
 
+type ArcGisErrorPayload = {
+  error?: {
+    code?: number;
+    message?: string;
+    details?: string[];
+  };
+};
+
 function isConfigured() {
   return Boolean(queryEndpoint);
 }
@@ -60,23 +68,41 @@ function buildProxyUrl(path: string, params: Record<string, string | number | bo
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
-  if (!response.ok) {
-    let payload: unknown = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  const arcGisError =
+    payload &&
+    typeof payload === "object" &&
+    "error" in payload
+      ? (payload as ArcGisErrorPayload).error
+      : null;
+
+  if (!response.ok || arcGisError) {
     const message =
-      payload &&
+      arcGisError?.message ||
+      (payload &&
       typeof payload === "object" &&
       "error" in payload &&
       typeof payload.error === "string"
         ? payload.error
-        : `Parcel request failed (${response.status})`;
+        : `Parcel request failed (${response.status})`);
+
+    if (/service .* not started|temporarily unavailable|service unavailable/i.test(message)) {
+      throw new ParcelProviderUnavailableError(
+        providerId,
+        "Fulton County parcel service is temporarily offline. The map is centered on the address, but parcel boundaries are unavailable right now.",
+      );
+    }
+
     throw new Error(message);
   }
-  return response.json() as Promise<T>;
+
+  return payload as T;
 }
 
 function normalizeText(value: string) {

@@ -7,6 +7,7 @@ import {
 import { fetchTerrainContours } from "../services/terrainService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
+import { ParcelProviderUnavailableError } from "../data/providers/parcels/types";
 import { getBasemapDefinition } from "./basemapRegistry";
 import { buildMapLayers } from "./mapLayers";
 import { registerMapLayers } from "./mapLayerManager";
@@ -447,7 +448,14 @@ export function QuickMapCanvas() {
               setNeighbors([]);
             }
           } catch (error) {
-            setSearchError(error instanceof Error ? error.message : "Parcel selection failed");
+            if (error instanceof ParcelProviderUnavailableError) {
+              setSearchError(
+                error.message ||
+                  "The county parcel service is temporarily offline. The map is centered, but parcel boundaries are unavailable right now.",
+              );
+            } else {
+              setSearchError(error instanceof Error ? error.message : "Parcel selection failed");
+            }
           } finally {
             setSelectedParcelLoading(false);
           }
