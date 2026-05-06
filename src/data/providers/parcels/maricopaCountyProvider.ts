@@ -48,6 +48,13 @@ type ArcGisErrorPayload = {
   };
 };
 
+type Envelope = {
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+};
+
 function isConfigured() {
   return Boolean(queryEndpoint);
 }
@@ -134,6 +141,27 @@ function buildArcGisQueryUrl(params: Record<string, string>) {
   return url.toString();
 }
 
+function metersToLatitudeDegrees(meters: number) {
+  return meters / 111_320;
+}
+
+function metersToLongitudeDegrees(meters: number, latitude: number) {
+  const cosine = Math.cos((latitude * Math.PI) / 180);
+  const safeCosine = Math.max(0.2, Math.abs(cosine));
+  return meters / (111_320 * safeCosine);
+}
+
+function buildEnvelopeAroundPoint(input: ParcelPointInput, radiusMeters: number): Envelope {
+  const latDelta = metersToLatitudeDegrees(radiusMeters);
+  const lngDelta = metersToLongitudeDegrees(radiusMeters, input.lat);
+  return {
+    xmin: input.lng - lngDelta,
+    ymin: input.lat - latDelta,
+    xmax: input.lng + lngDelta,
+    ymax: input.lat + latDelta,
+  };
+}
+
 async function geocodeAddress(query: string): Promise<GeocodeCandidate | null> {
   const response = await fetchJson<{ results?: GeocodeCandidate[] }>(
     buildProxyUrl("geocode", { query }),
@@ -183,6 +211,19 @@ function centroidFromFeature(feature: ArcGisFeature) {
     maxLat = Math.max(maxLat, lat);
   }
   return [(minLng + maxLng) / 2, (minLat + maxLat) / 2] as [number, number];
+}
+
+function distanceMeters(fromLng: number, fromLat: number, toLng: number, toLat: number) {
+  const earthRadiusMeters = 6_371_000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRadians(toLat - fromLat);
+  const dLng = toRadians(toLng - fromLng);
+  const lat1 = toRadians(fromLat);
+  const lat2 = toRadians(toLat);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function shapeAreaSquareMetersToAcres(shapeArea: number) {
@@ -278,6 +319,27 @@ async function queryByPoint(input: ParcelPointInput, limit = 8) {
   return fetchJson<ArcGisQueryResponse>(url);
 }
 
+async function queryByEnvelope(input: ParcelPointInput, limit = 12, radiusMeters = 25) {
+  assertConfigured();
+  const envelope = buildEnvelopeAroundPoint(input, radiusMeters);
+  const url = buildArcGisQueryUrl({
+    f: "json",
+    where: "1=1",
+    geometry: JSON.stringify({
+      ...envelope,
+      spatialReference: { wkid: 4326 },
+    }),
+    geometryType: "esriGeometryEnvelope",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    returnGeometry: "true",
+    outFields: "*",
+    outSR: "4326",
+    resultRecordCount: String(limit),
+  });
+  return fetchJson<ArcGisQueryResponse>(url);
+}
+
 async function queryByObjectId(objectId: string) {
   assertConfigured();
   const url = buildArcGisQueryUrl({
@@ -294,6 +356,26 @@ function mapFeaturesToDetails(response: ArcGisQueryResponse) {
   return (response.features ?? []).map((feature) => mapFeatureToDetail(feature));
 }
 
+function scoreDetailForPoint(detail: ParcelDetail, input: ParcelPointInput) {
+  const centroid = detail.centroid;
+  const centroidDistance = centroid
+    ? distanceMeters(input.lng, input.lat, centroid[0], centroid[1])
+    : 150;
+  const acreagePenalty = detail.areaAcres > 0 ? Math.min(250, detail.areaAcres * 2) : 50;
+  const addressBonus = detail.address ? -15 : 0;
+  return centroidDistance + acreagePenalty + addressBonus;
+}
+
+async function findBestDetailsForPoint(input: ParcelPointInput, limit = 8) {
+  const direct = await queryByPoint(input, limit);
+  let details = mapFeaturesToDetails(direct);
+  if (!details.length) {
+    const nearby = await queryByEnvelope(input, Math.max(limit, 10), 30);
+    details = mapFeaturesToDetails(nearby);
+  }
+  return details.sort((left, right) => scoreDetailForPoint(left, input) - scoreDetailForPoint(right, input));
+}
+
 export const maricopaCountyProvider: ParcelProvider = {
   id: providerId,
   label: providerLabel,
@@ -305,8 +387,27 @@ export const maricopaCountyProvider: ParcelProvider = {
     if (!geocode) {
       throw new Error("We could not geocode that Maricopa County address. Try a fuller Phoenix-area street address.");
     }
-    const response = await queryByPoint({ lat: geocode.lat, lng: geocode.lng });
-    const parcelResults = (response.features ?? []).map((feature) => mapFeatureToSearchResult(feature));
+    const details = await findBestDetailsForPoint({ lat: geocode.lat, lng: geocode.lng });
+    const parcelResults = details.map((detail) =>
+      withSearchResultSource({
+        llUuid: detail.llUuid,
+        headline: detail.headline,
+        address: detail.address || detail.headline,
+        context: `Maricopa County, AZ${detail.apn ? ` • APN ${detail.apn}` : ""}`,
+        path: "",
+        score: 1000,
+        coordinates: detail.centroid,
+        parcelNumber: detail.apn || undefined,
+        acreage: detail.areaAcres || undefined,
+        matchType: "provider",
+        kind: "parcel",
+        provider: "county-arcgis",
+        sourceKey: providerId,
+      }, {
+        id: providerId,
+        label: providerLabel,
+      }),
+    );
     if (parcelResults.length) {
       return parcelResults;
     }
@@ -332,12 +433,10 @@ export const maricopaCountyProvider: ParcelProvider = {
     return mapFeaturesToDetails(response)[0] ?? null;
   },
   async fetchParcelAtPoint(input) {
-    const response = await queryByPoint(input, 1);
-    return mapFeaturesToDetails(response)[0] ?? null;
+    return (await findBestDetailsForPoint(input, 1))[0] ?? null;
   },
   async fetchParcelCandidatesAtPoint(input) {
-    const response = await queryByPoint(input, 6);
-    return mapFeaturesToDetails(response);
+    return findBestDetailsForPoint(input, 6);
   },
   async fetchParcelNeighbors(input?: ParcelNeighborsInput) {
     if (!input) return [];
