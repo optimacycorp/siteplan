@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { describeParcelSource } from "../services/parcelService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
 
@@ -23,6 +24,7 @@ function resolveHealthUrl() {
 
 export function DevStatusPanel() {
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
+  const activeParcelProviderId = useQuickSiteStore((state) => state.activeParcelProviderId);
   const searchError = useQuickSiteStore((state) => state.searchError);
   const drawingCount = useDrawingStore((state) => state.drawings.length);
   const [proxyStatus, setProxyStatus] = useState<ProxyStatus | null>(null);
@@ -35,7 +37,9 @@ export function DevStatusPanel() {
 
     let active = true;
     void fetch(resolveHealthUrl())
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`Health check failed (${response.status})`))))
+      .then((response) =>
+        response.ok ? response.json() : Promise.reject(new Error(`Health check failed (${response.status})`)),
+      )
       .then((payload) => {
         if (!active) return;
         setProxyStatus(payload as ProxyStatus);
@@ -64,6 +68,8 @@ export function DevStatusPanel() {
         <dd>{proxyBaseUrl}</dd>
         <dt>Proxy health</dt>
         <dd>{proxyStatus ? (proxyStatus.ok ? proxyStatus.providerMode || "ok" : "unreachable") : "checking..."}</dd>
+        <dt>Active provider</dt>
+        <dd>{describeParcelSource(activeParcelProviderId || "", "")}</dd>
         <dt>Selected APN</dt>
         <dd>{selectedParcel?.apn || selectedParcel?.llUuid || "-"}</dd>
         <dt>Drawings</dt>

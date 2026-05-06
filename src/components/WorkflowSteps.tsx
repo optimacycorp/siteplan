@@ -1,4 +1,5 @@
 import { rampartNeighborFixtures, rampartParcelFixture, rampartParcelSearchResults } from "../fixtures/rampartParcelFixture";
+import { describeParcelSource } from "../services/parcelService";
 import { useDrawingStore } from "../state/drawingStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 
@@ -49,6 +50,7 @@ function buildSteps(selectedParcel: boolean, drawingCount: number): StepDefiniti
 export function WorkflowSteps() {
   const fixtureMode = String(import.meta.env.VITE_USE_PARCEL_FIXTURES || "").toLowerCase() === "true";
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
+  const activeParcelProviderId = useQuickSiteStore((state) => state.activeParcelProviderId);
   const searchError = useQuickSiteStore((state) => state.searchError);
   const selectedParcelLoading = useQuickSiteStore((state) => state.selectedParcelLoading);
   const drawingCount = useDrawingStore((state) => state.drawings.length);
@@ -81,9 +83,14 @@ export function WorkflowSteps() {
     <section className="panel-section">
       <h2>Workflow</h2>
       <p className="muted">{currentStep.helper}</p>
+      {activeParcelProviderId ? (
+        <p className="muted">
+          Active parcel provider: <strong>{describeParcelSource(activeParcelProviderId, "")}</strong>
+        </p>
+      ) : null}
       {selectedParcelLoading ? (
         <p className="status-message info-text">
-          Locating the parcel at the clicked point and checking nearby parcel coverage…
+          Locating the parcel at the clicked point and checking nearby parcel coverage...
         </p>
       ) : null}
       {searchError ? <p className="status-message error-text">{searchError}</p> : null}
