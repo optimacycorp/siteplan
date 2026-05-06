@@ -45,7 +45,9 @@ export function AddressSearch() {
       const query = searchText.trim();
       const provider = resolveSearchProvider(query);
       setActiveParcelProviderId(provider.id);
-      const results = looksLikeParcelIdentifier(query)
+      const useProviderSearch =
+        looksLikeParcelIdentifier(query) || provider.id !== "open-parcel-proxy";
+      const results = useProviderSearch
         ? await searchParcels(query)
         : await geocodeAddressCandidates(query);
       setSearchResults(results);
