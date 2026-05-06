@@ -11,7 +11,9 @@ import {
 
 const providerId = "fulton-county-ga";
 const providerLabel = "Fulton County GIS";
-const queryEndpoint = String(import.meta.env.VITE_FULTON_PARCEL_QUERY_URL || "").trim();
+const defaultFultonQueryEndpoint =
+  "https://gismaps.fultoncountyga.gov/arcgispub/rest/services/Basemap/FultonStreetBaseMap/MapServer/85/query";
+const queryEndpoint = String(import.meta.env.VITE_FULTON_PARCEL_QUERY_URL || defaultFultonQueryEndpoint).trim();
 const proxyBaseUrl =
   import.meta.env.VITE_PARCEL_PROXY_BASE_URL ??
   import.meta.env.VITE_REGRID_PROXY_BASE_URL ??
@@ -96,7 +98,10 @@ function assertConfigured() {
 }
 
 function buildArcGisQueryUrl(params: Record<string, string>) {
-  const url = new URL(queryEndpoint);
+  const normalizedEndpoint = /\/query$/i.test(queryEndpoint)
+    ? queryEndpoint
+    : `${queryEndpoint.replace(/\/+$/, "")}/query`;
+  const url = new URL(normalizedEndpoint);
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value);
   });

@@ -33,7 +33,7 @@ The client prefers the parcel proxy variables:
 VITE_PARCEL_PROXY_BASE_URL=/parcels/
 VITE_REGRID_PROXY_BASE_URL=/parcels/ # legacy compatibility only
 VITE_DEFAULT_PARCEL_PROVIDER=auto
-VITE_FULTON_PARCEL_QUERY_URL=
+VITE_FULTON_PARCEL_QUERY_URL=https://gismaps.fultoncountyga.gov/arcgispub/rest/services/Basemap/FultonStreetBaseMap/MapServer/85/query
 ```
 
 Use `VITE_USE_PARCEL_FIXTURES=true` for local UI work without live parcel services.
