@@ -30,6 +30,8 @@ export function QuickMapCanvas() {
   const [terrainContours, setTerrainContours] = useState<GeoJSON.FeatureCollection | null>(null);
   const modeRef = useRef(useDrawingStore.getState().mode);
   const layersRef = useRef<ReturnType<typeof buildMapLayers>>([]);
+  const selectedParcelRef = useRef(useQuickSiteStore.getState().selectedParcel);
+  const activeParcelProviderIdRef = useRef(useQuickSiteStore.getState().activeParcelProviderId);
   const suppressClickRef = useRef(false);
   const exportReadyDispatchedRef = useRef(false);
   const draggingVertexRef = useRef<{ drawingId: string; pointIndex: number } | null>(null);
@@ -77,6 +79,14 @@ export function QuickMapCanvas() {
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  useEffect(() => {
+    selectedParcelRef.current = selectedParcel;
+  }, [selectedParcel]);
+
+  useEffect(() => {
+    activeParcelProviderIdRef.current = activeParcelProviderId;
+  }, [activeParcelProviderId]);
 
   function buildRectanglePoints(
     start: { lng: number; lat: number },
@@ -421,18 +431,21 @@ export function QuickMapCanvas() {
               lng: event.lngLat.lng,
               lat: event.lngLat.lat,
             };
+            const currentSelectedParcel = selectedParcelRef.current;
+            const currentProviderId = activeParcelProviderIdRef.current || undefined;
             if (
-              selectedParcel?.geometry &&
-              geometryContainsPoint(selectedParcel.geometry, [clickPoint.lng, clickPoint.lat])
+              currentSelectedParcel?.geometry &&
+              geometryContainsPoint(currentSelectedParcel.geometry, [clickPoint.lng, clickPoint.lat])
             ) {
               setSearchError("");
-              if (selectedParcel.centroid) {
+              setSelectedParcel(currentSelectedParcel);
+              if (currentSelectedParcel.centroid) {
                 setNeighbors(
                   await fetchParcelNeighbors({
-                    lng: selectedParcel.centroid[0],
-                    lat: selectedParcel.centroid[1],
-                    excludeLlUuid: selectedParcel.llUuid,
-                    providerId: selectedParcel.providerId || activeParcelProviderId || undefined,
+                    lng: currentSelectedParcel.centroid[0],
+                    lat: currentSelectedParcel.centroid[1],
+                    excludeLlUuid: currentSelectedParcel.llUuid,
+                    providerId: currentSelectedParcel.providerId || currentProviderId,
                   }),
                 );
               }
@@ -440,7 +453,7 @@ export function QuickMapCanvas() {
             }
             const candidates = await fetchParcelCandidatesAtPoint({
               ...clickPoint,
-              providerId: activeParcelProviderId || undefined,
+              providerId: currentProviderId,
             });
             const detail = candidates[0] ?? null;
             if (!detail) {
@@ -454,14 +467,14 @@ export function QuickMapCanvas() {
             setSelectedParcel(detail);
             if (detail.centroid) {
               setNeighbors(
-                await fetchParcelNeighbors({
-                  lng: detail.centroid[0],
-                  lat: detail.centroid[1],
-                  excludeLlUuid: detail.llUuid,
-                  providerId: detail.providerId || activeParcelProviderId || undefined,
-                }),
-              );
-            } else {
+                  await fetchParcelNeighbors({
+                    lng: detail.centroid[0],
+                    lat: detail.centroid[1],
+                    excludeLlUuid: detail.llUuid,
+                    providerId: detail.providerId || currentProviderId,
+                  }),
+                );
+              } else {
               setNeighbors([]);
             }
           } catch (error) {
