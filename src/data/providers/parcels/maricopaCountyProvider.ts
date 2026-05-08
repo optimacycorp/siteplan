@@ -260,7 +260,7 @@ function mapFeatureToDetail(feature: ArcGisFeature): ParcelDetail {
       : 0;
 
   const sourceUrl = apn
-    ? `https://mcassessor.maricopa.gov/parcel/${encodeURIComponent(apn)}`
+    ? `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(apn)}`
     : "";
 
   return withDetailSource({
