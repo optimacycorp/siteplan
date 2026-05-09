@@ -36,6 +36,7 @@ VITE_DEFAULT_PARCEL_PROVIDER=auto
 VITE_FULTON_PARCEL_QUERY_URL=https://gismaps.fultoncountyga.gov/arcgispub/rest/services/Basemap/FultonStreetBaseMap/MapServer/85/query
 VITE_MARICOPA_PARCEL_QUERY_URL=https://gis.mcassessor.maricopa.gov/arcgis/rest/services/Parcels/MapServer/0/query
 VITE_PUEBLO_PARCEL_QUERY_URL=https://maps.co.pueblo.co.us/outside/rest/services/Landbase/PuebloCounty_Parcels/MapServer/1/query
+VITE_PUEBLO_ADDRESS_QUERY_URL=https://maps.co.pueblo.co.us/outside/rest/services/Landbase/PuebloCounty_AddressPoints/MapServer/0/query
 VITE_MARICOPA_CLICK_TOLERANCE_METERS=120
 VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS=240
 VITE_PUEBLO_CLICK_TOLERANCE_METERS=80
@@ -48,7 +49,7 @@ Use `VITE_FULTON_PARCEL_QUERY_URL` to enable the Fulton County ArcGIS provider, 
 Use `VITE_MARICOPA_PARCEL_QUERY_URL` to enable the Maricopa County Assessor parcel provider, and
 `VITE_DEFAULT_PARCEL_PROVIDER=maricopa-county-az` if you want Phoenix-area interactions to become the default click/search provider for an Arizona deployment.
 Use `VITE_MARICOPA_CLICK_TOLERANCE_METERS` to control the first nearby parcel search pass in Maricopa County, and `VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS` to control the wider retry envelope when the first pass still misses.
-Use `VITE_PUEBLO_PARCEL_QUERY_URL` to enable the Pueblo County parcel provider, and `VITE_DEFAULT_PARCEL_PROVIDER=pueblo-county-co` if you want Pueblo-area interactions to become the default click/search provider for a southern Colorado deployment.
+Use `VITE_PUEBLO_PARCEL_QUERY_URL` and `VITE_PUEBLO_ADDRESS_QUERY_URL` to enable the Pueblo County parcel and county-address providers, and `VITE_DEFAULT_PARCEL_PROVIDER=pueblo-county-co` if you want Pueblo-area interactions to become the default click/search provider for a southern Colorado deployment.
 Use `VITE_PUEBLO_CLICK_TOLERANCE_METERS` and `VITE_PUEBLO_CLICK_TOLERANCE_MAX_METERS` to control Pueblo County click tolerance when parcel boundaries sit slightly off the geocoded point.
 
 Do not expose provider or Supabase secrets in browser code.
