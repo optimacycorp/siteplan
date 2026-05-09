@@ -45,6 +45,18 @@ type ArcGisQueryResponse = {
   features?: ArcGisFeature[];
 };
 
+type ArcGisFindResult = {
+  layerId?: number;
+  layerName?: string;
+  displayFieldName?: string;
+  attributes?: Record<string, unknown>;
+  geometry?: ArcGisGeometry | null;
+};
+
+type ArcGisFindResponse = {
+  results?: ArcGisFindResult[];
+};
+
 type ArcGisErrorPayload = {
   error?: {
     code?: number;
@@ -145,6 +157,17 @@ function buildArcGisQueryUrl(params: Record<string, string>) {
     ? queryEndpoint
     : `${queryEndpoint.replace(/\/+$/, "")}/query`;
   const url = new URL(normalizedEndpoint);
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+  return url.toString();
+}
+
+function buildArcGisFindUrl(params: Record<string, string>) {
+  const normalizedEndpoint = queryEndpoint
+    .replace(/\/query$/i, "")
+    .replace(/\/\d+$/i, "");
+  const url = new URL(`${normalizedEndpoint.replace(/\/+$/, "")}/find`);
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value);
   });
@@ -398,6 +421,13 @@ function mapFeaturesToDetails(response: ArcGisQueryResponse) {
   return (response.features ?? []).map((feature) => mapFeatureToDetail(feature, response));
 }
 
+function mapFindResultsToFeatures(response: ArcGisFindResponse): ArcGisFeature[] {
+  return (response.results ?? []).map((result) => ({
+    attributes: result.attributes ?? {},
+    geometry: result.geometry ?? null,
+  }));
+}
+
 function scoreDetailForPoint(detail: ParcelDetail, input: ParcelPointInput) {
   const centroid = detail.centroid;
   const centroidDistance = centroid
@@ -422,6 +452,28 @@ async function findBestDetailsForPoint(input: ParcelPointInput, limit = 8) {
   return details.sort((left, right) => scoreDetailForPoint(left, input) - scoreDetailForPoint(right, input));
 }
 
+async function findByAddressText(query: string, limit = 8) {
+  assertConfigured();
+  const url = buildArcGisFindUrl({
+    f: "json",
+    searchText: query.trim(),
+    layers: "1",
+    returnGeometry: "true",
+    searchFields: "SitAddr,Owner,PAR_TXT",
+    outFields: "*",
+    sr: "4326",
+    returnZ: "false",
+    returnM: "false",
+    maxAllowableOffset: "0",
+  });
+  const response = await fetchJson<ArcGisFindResponse>(url);
+  const fakeQueryResponse: ArcGisQueryResponse = {
+    objectIdFieldName: "OBJECTID",
+    features: mapFindResultsToFeatures(response).slice(0, limit),
+  };
+  return mapFeaturesToDetails(fakeQueryResponse);
+}
+
 export const puebloCountyProvider: ParcelProvider = {
   id: providerId,
   label: providerLabel,
@@ -438,6 +490,30 @@ export const puebloCountyProvider: ParcelProvider = {
       if (identifierResults.length) {
         return identifierResults;
       }
+    }
+
+    const countyAddressMatches = await findByAddressText(query, 8);
+    if (countyAddressMatches.length) {
+      return countyAddressMatches.map((detail) =>
+        withSearchResultSource({
+          llUuid: detail.llUuid,
+          headline: detail.headline,
+          address: detail.address || detail.headline,
+          context: `Pueblo County, CO${detail.apn ? ` • APN ${detail.apn}` : ""}`,
+          path: "",
+          score: 1000,
+          coordinates: detail.centroid,
+          parcelNumber: detail.apn || undefined,
+          acreage: detail.areaAcres || undefined,
+          matchType: "provider",
+          kind: "parcel",
+          provider: "county-arcgis",
+          sourceKey: providerId,
+        }, {
+          id: providerId,
+          label: providerLabel,
+        }),
+      );
     }
 
     const geocode = await geocodeAddress(query);
