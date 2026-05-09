@@ -3,6 +3,7 @@ import * as openParcelService from "../../../services/openParcelService";
 import type { ParcelDetail, ParcelNeighbor, ParcelSearchResult } from "../../../types/parcel";
 import { fultonCountyProvider } from "./fultonCountyProvider";
 import { maricopaCountyProvider } from "./maricopaCountyProvider";
+import { puebloCountyProvider } from "./puebloCountyProvider";
 import {
   type ParcelNeighborsInput,
   type ParcelPointInput,
@@ -56,6 +57,7 @@ const providerMap = new Map<string, ParcelProvider>([
   [proxyProvider.id, proxyProvider],
   [fultonCountyProvider.id, fultonCountyProvider],
   [maricopaCountyProvider.id, maricopaCountyProvider],
+  [puebloCountyProvider.id, puebloCountyProvider],
 ]);
 
 function normalizeText(value: string) {
@@ -94,6 +96,9 @@ export function resolveSearchProvider(query: string) {
   if (/^maricopa:/i.test(trimmed) || maricopaCountyProvider.supportsQuery?.(trimmed)) {
     return maricopaCountyProvider;
   }
+  if (/^pueblo:/i.test(trimmed) || puebloCountyProvider.supportsQuery?.(trimmed)) {
+    return puebloCountyProvider;
+  }
   if (defaultProviderPreference !== "auto") {
     const configured = getProviderById(defaultProviderPreference);
     if (configured) return configured;
@@ -104,6 +109,7 @@ export function resolveSearchProvider(query: string) {
 export function resolveProviderForParcelId(llUuid: string) {
   if (/^fulton:/i.test(llUuid)) return fultonCountyProvider;
   if (/^maricopa:/i.test(llUuid)) return maricopaCountyProvider;
+  if (/^pueblo:/i.test(llUuid)) return puebloCountyProvider;
   if (/^fixture-/i.test(llUuid) || /^geocode:/i.test(llUuid) && useFixtures) return fixtureProvider;
   return getPreferredInteractiveProvider();
 }
@@ -161,6 +167,10 @@ export function describeParcelSource(sourceKey?: string | null, sourceLabel?: st
     case "maricopa county assessor":
     case "maricopa-county-az":
       return "Maricopa County Assessor";
+    case "pueblo county co":
+    case "pueblo county assessor":
+    case "pueblo-county-co":
+      return "Pueblo County Assessor";
     default:
       return sourceKey || "Parcel provider";
   }
