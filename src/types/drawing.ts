@@ -8,6 +8,8 @@ export type DrawingMode =
 
 export type DrawingFeatureType = Exclude<DrawingMode, "select">;
 
+export type DrawingWizardStep = "choose" | "draw" | "review" | "saved";
+
 export type LngLatPoint = { lng: number; lat: number };
 
 export type DrawingFeature = {

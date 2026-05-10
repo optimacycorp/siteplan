@@ -30,11 +30,13 @@ export function App() {
   const selectedDrawingId = useDrawingStore((state) => state.selectedDrawingId);
   const clearActiveFeature = useDrawingStore((state) => state.clearActiveFeature);
   const completeActiveFeature = useDrawingStore((state) => state.completeActiveFeature);
+  const reviewWizardFeature = useDrawingStore((state) => state.reviewWizardFeature);
   const deleteSelected = useDrawingStore((state) => state.deleteSelected);
   const deleteSelectedVertex = useDrawingStore((state) => state.deleteSelectedVertex);
   const selectDrawing = useDrawingStore((state) => state.selectDrawing);
   const selectVertex = useDrawingStore((state) => state.selectVertex);
   const selectedVertex = useDrawingStore((state) => state.selectedVertex);
+  const wizard = useDrawingStore((state) => state.wizard);
   const clearSelectedParcel = useQuickSiteStore((state) => state.clearSelectedParcel);
   const exportReady = Boolean(selectedParcel) && drawingCount > 0;
   const subtitle = !selectedParcel
@@ -64,7 +66,11 @@ export function App() {
       }
 
       if (event.key === "Enter") {
-        completeActiveFeature();
+        if (wizard.active && wizard.step === "draw") {
+          reviewWizardFeature();
+        } else {
+          completeActiveFeature();
+        }
         return;
       }
 
@@ -89,11 +95,13 @@ export function App() {
     completeActiveFeature,
     deleteSelected,
     deleteSelectedVertex,
+    reviewWizardFeature,
     selectedDrawingId,
     selectedParcel,
     selectedVertex,
     selectDrawing,
     selectVertex,
+    wizard,
   ]);
 
   return (

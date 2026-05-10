@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { DrawingFeature, DrawingFeatureType, DrawingMode, LngLatPoint } from "../types/drawing";
+import type {
+  DrawingFeature,
+  DrawingFeatureType,
+  DrawingMode,
+  DrawingWizardStep,
+  LngLatPoint,
+} from "../types/drawing";
 import { summarizeDrawingFeature } from "../map/mapUtils";
 
 type DrawingState = {
@@ -10,10 +16,15 @@ type DrawingState = {
   selectedDrawingId: string | null;
   selectedVertex: { drawingId: string; pointIndex: number } | null;
   validationMessage: string;
+  wizard: {
+    active: boolean;
+    featureType: DrawingFeatureType | null;
+    step: DrawingWizardStep;
+  };
   setMode: (mode: DrawingMode) => void;
   addPoint: (point: LngLatPoint) => void;
   setActivePoints: (points: LngLatPoint[]) => void;
-  completeActiveFeature: () => void;
+  completeActiveFeature: () => boolean;
   undoActivePoint: () => void;
   clearActiveFeature: () => void;
   deleteSelected: () => void;
@@ -27,6 +38,11 @@ type DrawingState = {
   insertDrawingPoint: (drawingId: string, pointIndex: number, point: LngLatPoint) => void;
   deleteSelectedVertex: () => void;
   setValidationMessage: (message: string) => void;
+  startWizard: (featureType: DrawingFeatureType) => void;
+  returnWizardToChoose: () => void;
+  reviewWizardFeature: () => boolean;
+  finishWizard: () => void;
+  resumeWizardEditing: () => void;
   resetSession: () => void;
   hydrateExportSession: (payload: { drawings: DrawingFeature[] }) => void;
 };
@@ -51,6 +67,11 @@ export const useDrawingStore = create<DrawingState>()(
       selectedDrawingId: null,
       selectedVertex: null,
       validationMessage: "",
+      wizard: {
+        active: false,
+        featureType: null,
+        step: "choose",
+      },
       setMode: (mode) => set({ mode, activePoints: [], selectedVertex: null, validationMessage: "" }),
       addPoint: (point) => {
         const { mode, activePoints } = get();
@@ -60,7 +81,7 @@ export const useDrawingStore = create<DrawingState>()(
       setActivePoints: (activePoints) => set({ activePoints, validationMessage: "" }),
       completeActiveFeature: () => {
         const { mode, activePoints, drawings } = get();
-        if (mode === "select") return;
+        if (mode === "select") return false;
         const nextIndex = drawings.filter((drawing) => drawing.type === mode).length + 1;
         const feature: DrawingFeature = {
           id: crypto.randomUUID(),
@@ -72,7 +93,7 @@ export const useDrawingStore = create<DrawingState>()(
         const summary = summarizeDrawingFeature(feature);
         if (!summary.isValid) {
           set({ validationMessage: summary.warning || "Finish the feature before completing it." });
-          return;
+          return false;
         }
         set((state) => ({
           drawings: [...state.drawings, feature],
@@ -81,6 +102,7 @@ export const useDrawingStore = create<DrawingState>()(
           selectedVertex: null,
           validationMessage: "",
         }));
+        return true;
       },
       undoActivePoint: () => set((state) => ({ activePoints: state.activePoints.slice(0, -1), validationMessage: "" })),
       clearActiveFeature: () => set({ activePoints: [], validationMessage: "" }),
@@ -198,6 +220,70 @@ export const useDrawingStore = create<DrawingState>()(
         }));
       },
       setValidationMessage: (validationMessage) => set({ validationMessage }),
+      startWizard: (featureType) =>
+        set({
+          wizard: {
+            active: true,
+            featureType,
+            step: "draw",
+          },
+          mode: featureType,
+          activePoints: [],
+          selectedDrawingId: null,
+          selectedVertex: null,
+          validationMessage: "",
+        }),
+      returnWizardToChoose: () =>
+        set({
+          wizard: {
+            active: true,
+            featureType: null,
+            step: "choose",
+          },
+          mode: "select",
+          activePoints: [],
+          selectedDrawingId: null,
+          selectedVertex: null,
+          validationMessage: "",
+        }),
+      reviewWizardFeature: () => {
+        const completed = get().completeActiveFeature();
+        if (!completed) return false;
+        const { wizard } = get();
+        set({
+          mode: "select",
+          wizard: {
+            active: true,
+            featureType: wizard.featureType,
+            step: "review",
+          },
+        });
+        return true;
+      },
+      finishWizard: () =>
+        set((state) => ({
+          mode: "select",
+          activePoints: [],
+          selectedVertex: null,
+          validationMessage: "",
+          wizard: {
+            active: true,
+            featureType: state.wizard.featureType,
+            step: "saved",
+          },
+        })),
+      resumeWizardEditing: () =>
+        set((state) => ({
+          mode: state.wizard.featureType ?? "select",
+          activePoints: [],
+          selectedVertex: null,
+          validationMessage: "",
+          wizard: {
+            active: true,
+            featureType: state.wizard.featureType,
+            step: "draw",
+          },
+        })),
       resetSession: () =>
         set({
           mode: "select",
@@ -206,6 +292,11 @@ export const useDrawingStore = create<DrawingState>()(
           selectedDrawingId: null,
           selectedVertex: null,
           validationMessage: "",
+          wizard: {
+            active: false,
+            featureType: null,
+            step: "choose",
+          },
         }),
       hydrateExportSession: (payload) =>
         set({
@@ -215,6 +306,11 @@ export const useDrawingStore = create<DrawingState>()(
           selectedDrawingId: null,
           selectedVertex: null,
           validationMessage: "",
+          wizard: {
+            active: false,
+            featureType: null,
+            step: "choose",
+          },
         }),
     }),
     {
