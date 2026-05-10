@@ -109,6 +109,16 @@ function extractStreetAddress(query: string) {
   return street?.trim() || query.trim();
 }
 
+function extractCity(query: string) {
+  const parts = query.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.length > 1 ? parts[1] : "";
+}
+
+function extractZip(query: string) {
+  const match = query.match(/\b(\d{5})(?:-\d{4})?\b/);
+  return match ? match[1] : "";
+}
+
 function looksLikePuebloQuery(query: string) {
   const normalized = normalizeText(query);
   return /(pueblo|pueblo west|beulah|rye|co|colorado)/.test(normalized);
@@ -482,12 +492,30 @@ async function findCountyAddressPoint(query: string) {
   if (!streetAddress) {
     return null;
   }
-  const escapedStreet = escapeSqlLike(streetAddress.toUpperCase());
+  const city = extractCity(query).toUpperCase();
+  const zip = extractZip(query);
+  const tokens = normalizeText(streetAddress)
+    .split(" ")
+    .filter((token) => token.length > 1 || /^\d+$/.test(token))
+    .filter((token) => !["street", "st", "avenue", "ave", "road", "rd", "place", "pl", "drive", "dr", "court", "ct", "lane", "ln", "boulevard", "blvd"].includes(token));
+  const tokenClauses = tokens
+    .map((token) => {
+      const escapedToken = escapeSqlLike(token.toUpperCase());
+      return `(UPPER(FULLADDR) LIKE '%${escapedToken}%' OR UPPER(ALT_ADDR1) LIKE '%${escapedToken}%' OR UPPER(ALT_ADDR2) LIKE '%${escapedToken}%')`;
+    })
+    .join(" AND ");
+  const filters = [tokenClauses || `UPPER(FULLADDR) LIKE '%${escapeSqlLike(streetAddress.toUpperCase())}%'`];
+  if (city) {
+    filters.push(`UPPER(CITY) = '${escapeSqlLike(city)}'`);
+  }
+  if (zip) {
+    filters.push(`ZIP = ${Number(zip)}`);
+  }
   const url = buildArcGisServiceUrl(addressQueryEndpoint, {
     f: "json",
-    where: `UPPER(FULLADDR) LIKE '%${escapedStreet}%' OR UPPER(ALT_ADDR1) LIKE '%${escapedStreet}%' OR UPPER(ALT_ADDR2) LIKE '%${escapedStreet}%'`,
+    where: filters.join(" AND "),
     returnGeometry: "true",
-    outFields: "FULLADDR,ALT_ADDR1,ALT_ADDR2",
+    outFields: "FULLADDR,ALT_ADDR1,ALT_ADDR2,ASSESSOR_PARTEXT,CITY,ZIP",
     outSR: "4326",
     resultRecordCount: "5",
   });
@@ -501,6 +529,7 @@ async function findCountyAddressPoint(query: string) {
     lat: Number(pointGeometry.y),
     lng: Number(pointGeometry.x),
     displayName: String(pickAttribute(feature, "FULLADDR", "ALT_ADDR1", "ALT_ADDR2")),
+    parcelText: String(pickAttribute(feature, "ASSESSOR_PARTEXT")),
   };
 }
 
@@ -524,6 +553,16 @@ export const puebloCountyProvider: ParcelProvider = {
 
     const countyAddressPoint = await findCountyAddressPoint(query);
     if (countyAddressPoint) {
+      const parcelText = countyAddressPoint.parcelText?.trim();
+      if (parcelText) {
+        const parcelByAddressPoint = await queryByParcelText(parcelText, 4);
+        const parcelByAddressPointResults = (parcelByAddressPoint.features ?? []).map((feature) =>
+          mapFeatureToSearchResult(feature, parcelByAddressPoint),
+        );
+        if (parcelByAddressPointResults.length) {
+          return parcelByAddressPointResults;
+        }
+      }
       const countyAddressMatches = await findBestDetailsForPoint(
         { lat: countyAddressPoint.lat, lng: countyAddressPoint.lng },
         8,
