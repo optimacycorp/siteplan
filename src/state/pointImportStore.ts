@@ -11,6 +11,8 @@ type PointImportState = {
   importedPoints: ImportedPoint[];
   importError: string;
   selectedPointId: string | null;
+  wizardStep: "load" | "origin" | "preview" | "saved";
+  setWizardStep: (step: "load" | "origin" | "preview" | "saved") => void;
   parseCsvText: (text: string) => void;
   setTransform: (patch: Partial<LocalPointTransform>) => void;
   setOriginFromLngLat: (lng: number, lat: number, label?: string) => void;
@@ -76,12 +78,15 @@ export const usePointImportStore = create<PointImportState>()(
       importedPoints: [],
       importError: "",
       selectedPointId: null,
+      wizardStep: "load",
+      setWizardStep: (wizardStep) => set({ wizardStep, importError: "" }),
       parseCsvText: (text) => {
         const parsed = parseFieldPointCsv(text);
         set({
           previewRows: parsed.rows,
           previewPoints: [],
           importError: parsed.errors.join(" "),
+          wizardStep: parsed.rows.length ? "origin" : "load",
         });
       },
       setTransform: (patch) =>
@@ -116,6 +121,7 @@ export const usePointImportStore = create<PointImportState>()(
         set({
           previewPoints: transformed.map(({ row, lng, lat }) => toImportedPoint(row, { lng, lat })),
           importError: "",
+          wizardStep: "preview",
         });
       },
       commitPreviewPoints: () => {
@@ -130,6 +136,7 @@ export const usePointImportStore = create<PointImportState>()(
           previewRows: [],
           importError: "",
           selectedPointId: state.previewPoints[0]?.id ?? state.selectedPointId,
+          wizardStep: "saved",
         }));
       },
       deletePoint: (id) =>
@@ -144,6 +151,7 @@ export const usePointImportStore = create<PointImportState>()(
           importedPoints: [],
           importError: "",
           selectedPointId: null,
+          wizardStep: "load",
         }),
       selectPoint: (selectedPointId) => set({ selectedPointId }),
       hydrateExportSession: (payload) =>
@@ -154,6 +162,7 @@ export const usePointImportStore = create<PointImportState>()(
           previewPoints: [],
           importError: "",
           selectedPointId: null,
+          wizardStep: "load",
         }),
       resetSession: () =>
         set({
@@ -163,6 +172,7 @@ export const usePointImportStore = create<PointImportState>()(
           importedPoints: [],
           importError: "",
           selectedPointId: null,
+          wizardStep: "load",
         }),
     }),
     {
