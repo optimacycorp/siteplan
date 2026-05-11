@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { EmptyState } from "./EmptyState";
@@ -31,6 +31,51 @@ export function PointImportPanel() {
     commitPreviewPoints,
   } = usePointImportStore();
   const [csvText, setCsvText] = useState("");
+
+  const loadStepNotice = useMemo(() => {
+    if (importError) {
+      return importError;
+    }
+    if (!csvText.trim()) {
+      return "Load a CSV file or paste CSV text to begin the import.";
+    }
+    if (!previewRows.length) {
+      return "No usable point rows have been parsed yet. Check the header names and required northing/easting values.";
+    }
+    return "";
+  }, [csvText, importError, previewRows.length]);
+
+  const originStepChecks = useMemo(
+    () => [
+      {
+        label: "CSV rows parsed",
+        ok: previewRows.length > 0,
+      },
+      {
+        label: "Map origin selected",
+        ok: Boolean(transform.origin),
+      },
+      {
+        label: "Scale factor is positive",
+        ok: Number.isFinite(transform.scaleFactor) && transform.scaleFactor > 0,
+      },
+    ],
+    [previewRows.length, transform.origin, transform.scaleFactor],
+  );
+
+  const previewStepNotice = useMemo(() => {
+    if (importError) {
+      return importError;
+    }
+    if (!previewPoints.length) {
+      return "Preview the transformed points before saving them into the exhibit.";
+    }
+    return "";
+  }, [importError, previewPoints.length]);
+
+  const canAdvanceFromLoad = previewRows.length > 0;
+  const canPreviewPoints = originStepChecks.every((check) => check.ok);
+  const canSavePreview = previewPoints.length > 0;
 
   async function loadFile(file: File | null) {
     if (!file) return;
@@ -100,14 +145,16 @@ export function PointImportPanel() {
                 />
               </label>
 
-              {importError ? <InlineNotice tone="warning">{importError}</InlineNotice> : null}
+              <InlineNotice tone={canAdvanceFromLoad ? "success" : "warning"}>
+                {loadStepNotice || `Parsed rows ready: ${previewRows.length}`}
+              </InlineNotice>
               <div className="toolbar-grid compact-grid two-column-grid">
                 <button className="primary-button" onClick={() => parseCsvText(csvText)} type="button">
                   Load CSV
                 </button>
                 <button
                   className="secondary-button"
-                  disabled={!previewRows.length}
+                  disabled={!canAdvanceFromLoad}
                   onClick={() => setWizardStep("origin")}
                   type="button"
                 >
@@ -252,12 +299,29 @@ export function PointImportPanel() {
                 </label>
               </div>
 
-              {importError ? <InlineNotice tone="warning">{importError}</InlineNotice> : null}
+              <InlineNotice tone={canPreviewPoints ? "success" : "warning"}>
+                {canPreviewPoints
+                  ? "Origin setup looks good. Preview the transformed points when you're ready."
+                  : "Finish the required setup items below before previewing points."}
+              </InlineNotice>
+              <div className="result-list">
+                {originStepChecks.map((check) => (
+                  <div className="result-card" key={check.label}>
+                    <strong>{check.label}</strong>
+                    <p className="muted">{check.ok ? "Ready" : "Still needed"}</p>
+                  </div>
+                ))}
+              </div>
               <div className="toolbar-grid compact-grid two-column-grid">
                 <button className="secondary-button" onClick={() => setWizardStep("load")} type="button">
                   Back
                 </button>
-                <button className="primary-button" onClick={previewTransformedPoints} type="button">
+                <button
+                  className="primary-button"
+                  disabled={!canPreviewPoints}
+                  onClick={previewTransformedPoints}
+                  type="button"
+                >
                   Preview points
                 </button>
               </div>
@@ -270,7 +334,9 @@ export function PointImportPanel() {
               <p className="muted">
                 Preview looks good? Save these transformed points into the exhibit and they will persist after refresh.
               </p>
-              {importError ? <InlineNotice tone="warning">{importError}</InlineNotice> : null}
+              <InlineNotice tone={canSavePreview ? "success" : "warning"}>
+                {previewStepNotice || `Preview points ready: ${previewPoints.length}`}
+              </InlineNotice>
               <div className="result-list">
                 {previewPoints.slice(0, 5).map((point) => (
                   <div className="result-card" key={point.id}>
@@ -286,7 +352,12 @@ export function PointImportPanel() {
                 <button className="secondary-button" onClick={() => setWizardStep("origin")} type="button">
                   Back
                 </button>
-                <button className="primary-button" onClick={commitPreviewPoints} type="button">
+                <button
+                  className="primary-button"
+                  disabled={!canSavePreview}
+                  onClick={commitPreviewPoints}
+                  type="button"
+                >
                   Save imported points
                 </button>
               </div>
