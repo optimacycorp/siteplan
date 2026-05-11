@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { readExportSession } from "../export/exportSession";
 import { QuickMapCanvas } from "../map/QuickMapCanvas";
 import { useDrawingStore } from "../state/drawingStore";
+import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { PrintPlanSheet } from "./PrintPlanSheet";
 
@@ -11,6 +12,7 @@ export function ExportOnlyApp() {
   const setExportMeta = useQuickSiteStore((state) => state.setExportMeta);
   const hydrateQuickSite = useQuickSiteStore((state) => state.hydrateExportSession);
   const hydrateDrawings = useDrawingStore((state) => state.hydrateExportSession);
+  const hydratePoints = usePointImportStore((state) => state.hydrateExportSession);
 
   useEffect(() => {
     const payload = readExportSession();
@@ -31,8 +33,12 @@ export function ExportOnlyApp() {
     hydrateDrawings({
       drawings: payload.drawings,
     });
+    hydratePoints({
+      importedPoints: payload.importedPoints,
+      transform: payload.pointTransform,
+    });
     setReady(true);
-  }, [hydrateDrawings, hydrateQuickSite]);
+  }, [hydrateDrawings, hydratePoints, hydrateQuickSite]);
 
   useEffect(() => {
     if (!ready) return;

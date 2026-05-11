@@ -7,6 +7,7 @@ import {
 import { fetchTerrainContours } from "../services/terrainService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
+import { usePointImportStore } from "../state/pointImportStore";
 import { ParcelProviderUnavailableError } from "../data/providers/parcels/types";
 import { getBasemapDefinition } from "./basemapRegistry";
 import { buildMapLayers } from "./mapLayers";
@@ -61,6 +62,9 @@ export function QuickMapCanvas() {
     setSearchError,
     selectedParcelLoading,
   } = useQuickSiteStore();
+  const importedPoints = usePointImportStore((state) => state.importedPoints);
+  const selectedPointId = usePointImportStore((state) => state.selectedPointId);
+  const selectPoint = usePointImportStore((state) => state.selectPoint);
   const {
     drawings,
     activePoints,
@@ -106,12 +110,24 @@ export function QuickMapCanvas() {
         selectedParcel,
         neighbors,
         drawings,
+        importedPoints,
         activePoints,
         selectedDrawingId,
         selectedVertex,
+        selectedPointId,
         layerVisibility,
       }),
-    [selectedParcel, neighbors, drawings, activePoints, selectedDrawingId, selectedVertex, layerVisibility],
+    [
+      selectedParcel,
+      neighbors,
+      drawings,
+      importedPoints,
+      activePoints,
+      selectedDrawingId,
+      selectedVertex,
+      selectedPointId,
+      layerVisibility,
+    ],
   );
 
   useEffect(() => {
@@ -409,6 +425,17 @@ export function QuickMapCanvas() {
       }
 
       const interactiveLayers = ["drawing-polygons-fill", "drawing-lines", "drawing-labels"];
+      const importedPointFeature = map.queryRenderedFeatures(event.point, {
+        layers: ["imported-points"],
+      })[0];
+      const importedPointId = importedPointFeature?.properties?.id;
+      if (typeof importedPointId === "string") {
+        selectPoint(importedPointId);
+        if (modeRef.current === "select") {
+          return;
+        }
+      }
+
       const feature = map.queryRenderedFeatures(event.point, { layers: interactiveLayers })[0];
       const featureId = feature?.properties?.id;
 

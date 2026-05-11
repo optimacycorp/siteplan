@@ -20,6 +20,8 @@ const APP_LAYER_ORDER = [
   "neighbors-outline",
   "parcel-fill",
   "parcel-outline",
+  "imported-points",
+  "imported-point-labels",
   "drawing-polygons-fill",
   "drawing-polygons-outline",
   "drawing-lines",

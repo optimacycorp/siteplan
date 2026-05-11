@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { distanceMeters, formatBearing, formatFeetLabel, summarizeDrawingFeature } from "../map/mapUtils";
 import { useDrawingStore } from "../state/drawingStore";
+import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { PrintScaleBar } from "./PrintScaleBar";
 
@@ -26,6 +27,8 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
   const contourUnits = useQuickSiteStore((state) => state.terrainSettings.contourUnits);
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const drawings = useDrawingStore((state) => state.drawings);
+  const importedPoints = usePointImportStore((state) => state.importedPoints);
+  const pointTransform = usePointImportStore((state) => state.transform);
 
   const drawingSummary = useMemo(() => {
     const counts = drawings.reduce<Record<string, number>>((acc, drawing) => {
@@ -118,6 +121,7 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
               {parcel?.sourceKey || "local parcel cache"}
               {parcel?.sourceUrl ? " | county record available" : ""}
               {contoursVisible ? ` | USGS The National Map 3DEP contours (${contourUnits})` : ""}
+              {importedPoints.length ? ` | Local CSV points (${importedPoints.length})` : ""}
             </p>
           </div>
           <div>
@@ -264,6 +268,44 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
           </div>
         ) : null}
 
+        {importedPoints.length ? (
+          <div className="print-card print-card-details-boundary">
+            <div className="print-section-title">Imported Field Points</div>
+            <div className="print-boundary-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Point</th>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Elevation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importedPoints.map((point) => (
+                    <tr key={point.id}>
+                      <td>{point.pointNumber}</td>
+                      <td>{point.name}</td>
+                      <td>{point.code || "-"}</td>
+                      <td>{point.elevation ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="muted">
+              Coordinate mode: Local XY | Units: {pointTransform.units} | Rotation: {pointTransform.rotationDegrees}°
+              {" | "}Scale: {pointTransform.scaleFactor}
+            </p>
+            <p className="muted">
+              Origin: {pointTransform.origin?.label || "-"}
+              {pointTransform.origin
+                ? ` (${pointTransform.origin.lat.toFixed(6)}, ${pointTransform.origin.lng.toFixed(6)})`
+                : ""}
+            </p>
+          </div>
+        ) : null}
+
         <div className="print-card print-card-details-footer">
           <div>
             <div className="print-section-title">Plan Features</div>
@@ -279,6 +321,7 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
               {parcel?.sourceKey || "local parcel cache"}
               {parcel?.sourceUrl ? " | county record available" : ""}
               {contoursVisible ? ` | USGS The National Map 3DEP contours (${contourUnits})` : ""}
+              {importedPoints.length ? ` | Local CSV points (${importedPoints.length})` : ""}
             </p>
           </div>
         </div>

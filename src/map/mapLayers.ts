@@ -1,4 +1,5 @@
 import type { DrawingFeature } from "../types/drawing";
+import type { ImportedPoint } from "../types/fieldPoint";
 import type { ParcelDetail, ParcelNeighbor } from "../types/parcel";
 import type { MapLayerDescriptor } from "./mapLayerManager";
 import {
@@ -50,9 +51,11 @@ export function buildMapLayers(input: {
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   drawings: DrawingFeature[];
+  importedPoints: ImportedPoint[];
   activePoints?: DrawingFeature["points"];
   selectedDrawingId?: string | null;
   selectedVertex?: { drawingId: string; pointIndex: number } | null;
+  selectedPointId?: string | null;
   layerVisibility: Record<string, boolean>;
 }): MapLayerDescriptor[] {
   const parcelFeatures = input.selectedParcel?.geometry
@@ -175,6 +178,22 @@ export function buildMapLayers(input: {
         }) as GeoJSON.Feature,
     );
 
+  const importedPointFeatures = input.importedPoints.map(
+    (point) =>
+      ({
+        type: "Feature",
+        properties: {
+          id: point.id,
+          label: [point.pointNumber, point.name].filter(Boolean).join(" ").trim(),
+          selected: point.id === input.selectedPointId,
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [point.lng, point.lat],
+        },
+      }) as GeoJSON.Feature,
+  );
+
   const selectedDrawing =
     input.drawings.find((drawing) => drawing.id === input.selectedDrawingId) ?? null;
 
@@ -287,6 +306,42 @@ export function buildMapLayers(input: {
       source: { type: "geojson", data: fc(parcelFeatures) },
       layer: { type: "line", paint: { "line-color": "#16a34a", "line-width": 3 } },
       visible: input.layerVisibility.parcel,
+    },
+    {
+      id: "imported-points",
+      sourceId: "imported-points",
+      source: { type: "geojson", data: fc(importedPointFeatures) },
+      layer: {
+        type: "circle",
+        paint: {
+          "circle-radius": ["case", ["boolean", ["get", "selected"], false], 7, 5],
+          "circle-color": ["case", ["boolean", ["get", "selected"], false], "#ef4444", "#0f766e"],
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1.5,
+        },
+      },
+      visible: input.layerVisibility.fieldPoints,
+      interactive: true,
+    },
+    {
+      id: "imported-point-labels",
+      sourceId: "imported-points",
+      source: { type: "geojson", data: fc(importedPointFeatures) },
+      layer: {
+        type: "symbol",
+        layout: {
+          "text-field": ["get", "label"],
+          "text-size": 12,
+          "text-offset": [0, 1.1],
+          "text-anchor": "top",
+        },
+        paint: {
+          "text-color": "#134e4a",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.2,
+        },
+      },
+      visible: input.layerVisibility.fieldPointLabels,
     },
     {
       id: "drawing-polygons-fill",

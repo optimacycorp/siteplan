@@ -1,7 +1,9 @@
 import { useDrawingStore } from "../state/drawingStore";
+import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import type { BasemapKey } from "../map/basemapRegistry";
 import type { DrawingFeature } from "../types/drawing";
+import type { ImportedPoint, LocalPointTransform } from "../types/fieldPoint";
 import type { ParcelDetail, ParcelNeighbor } from "../types/parcel";
 
 const EXPORT_SESSION_KEY = "optimacy-quicksite-export-session";
@@ -30,11 +32,14 @@ export type ExportSessionPayload = {
   };
   layerVisibility: Record<string, boolean>;
   drawings: DrawingFeature[];
+  importedPoints: ImportedPoint[];
+  pointTransform: LocalPointTransform;
 };
 
 export function createExportSessionPayload(options?: { basemap?: BasemapKey }): ExportSessionPayload {
   const quickSiteState = useQuickSiteStore.getState();
   const drawingState = useDrawingStore.getState();
+  const pointImportState = usePointImportStore.getState();
 
   return {
     basemap: options?.basemap ?? quickSiteState.basemap,
@@ -45,6 +50,8 @@ export function createExportSessionPayload(options?: { basemap?: BasemapKey }): 
     exportMeta: quickSiteState.exportMeta,
     layerVisibility: quickSiteState.layerVisibility,
     drawings: drawingState.drawings,
+    importedPoints: pointImportState.importedPoints,
+    pointTransform: pointImportState.transform,
   };
 }
 

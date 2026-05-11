@@ -6,6 +6,8 @@ const layers = [
   ["neighbors", "Adjoining parcels"],
   ["drawings", "Drawings"],
   ["labels", "Labels"],
+  ["fieldPoints", "Imported points"],
+  ["fieldPointLabels", "Point labels"],
   ["contours", "Contours"],
   ["buildings", "Buildings"],
 ] as const;
@@ -31,7 +33,7 @@ export function LayerPanel() {
         ))}
       </div>
       <div className="layer-list">
-        {layers.filter(([key]) => key === "parcel" || key === "drawings" || key === "labels").map(([key, label]) => (
+        {layers.filter(([key]) => key === "parcel" || key === "drawings" || key === "labels" || key === "fieldPoints" || key === "fieldPointLabels").map(([key, label]) => (
           <label className="layer-toggle" key={key}>
             <input
               type="checkbox"

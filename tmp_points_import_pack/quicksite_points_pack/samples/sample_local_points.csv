@@ -1,0 +1,7 @@
+point,name,northing,easting,elevation,code,note
+1,CP1 Origin,0,0,6120.55,CTRL,Example origin control point
+2,Building NW,52.10,-20.00,6121.02,BLDG,Proposed corner
+3,Building NE,52.10,30.00,6120.88,BLDG,Proposed corner
+4,Building SE,-47.90,30.00,6120.45,BLDG,Proposed corner
+5,Building SW,-47.90,-20.00,6120.61,BLDG,Proposed corner
+6,Driveway CL,12.50,75.00,6119.93,DRIVE,Driveway centerline point

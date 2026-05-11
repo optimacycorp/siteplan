@@ -5,8 +5,10 @@ import { DrawingToolbar } from "./components/DrawingToolbar";
 import { ExportSheetPanel } from "./components/ExportSheetPanel";
 import { ExportOnlyApp } from "./components/ExportOnlyApp";
 import { FeatureListPanel } from "./components/FeatureListPanel";
+import { ImportedPointsPanel } from "./components/ImportedPointsPanel";
 import { LayerPanel } from "./components/LayerPanel";
 import { ParcelSummary } from "./components/ParcelSummary";
+import { PointImportPanel } from "./components/PointImportPanel";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { SelectedParcelCard } from "./components/SelectedParcelCard";
 import { TerrainSummary } from "./components/TerrainSummary";
@@ -114,6 +116,7 @@ export function App() {
           <AddressSearch />
           <SelectedParcelCard />
           <DrawingToolbar />
+          <PointImportPanel />
           <LayerPanel />
           <TerrainSummary />
         </>
@@ -127,6 +130,7 @@ export function App() {
         <>
           {selectedParcel ? <ParcelSummary /> : null}
           {selectedParcel ? <FeatureListPanel /> : null}
+          {selectedParcel ? <ImportedPointsPanel /> : null}
           {exportReady ? <ExportSheetPanel /> : null}
           {selectedDrawingId ? <PropertiesPanel /> : null}
           <DevStatusPanel />
