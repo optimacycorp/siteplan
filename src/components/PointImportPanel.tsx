@@ -30,7 +30,7 @@ export function PointImportPanel() {
 
   return (
     <section className="panel-section">
-      <h2>4. Import field points</h2>
+      <h2>4. Import field points (optional)</h2>
       {!selectedParcel ? (
         <EmptyState
           title="Choose the parcel first"

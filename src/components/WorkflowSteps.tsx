@@ -1,6 +1,7 @@
 import { rampartNeighborFixtures, rampartParcelFixture, rampartParcelSearchResults } from "../fixtures/rampartParcelFixture";
 import { describeParcelSource } from "../services/parcelService";
 import { useDrawingStore } from "../state/drawingStore";
+import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 
 type StepStatus = "done" | "current" | "locked";
@@ -11,7 +12,7 @@ type StepDefinition = {
   helper: string;
 };
 
-function buildSteps(selectedParcel: boolean, drawingCount: number): StepDefinition[] {
+function buildSteps(selectedParcel: boolean, drawingCount: number, importedPointCount: number): StepDefinition[] {
   return [
     {
       label: "Find property",
@@ -37,6 +38,23 @@ function buildSteps(selectedParcel: boolean, drawingCount: number): StepDefiniti
           : "Add the structure, driveway, easement, dimension, or labels.",
     },
     {
+      label: "Import field points (optional)",
+      status: !selectedParcel
+        ? "locked"
+        : importedPointCount > 0
+          ? "done"
+          : drawingCount > 0
+            ? "current"
+            : "locked",
+      helper: !selectedParcel
+        ? "Field point import unlocks after parcel confirmation."
+        : importedPointCount > 0
+          ? `${importedPointCount} point(s) imported for exhibit reference.`
+          : drawingCount > 0
+            ? "Optional: import local CSV points for planning overlays before export."
+            : "Optional after parcel confirmation and drawing.",
+    },
+    {
       label: "Export exhibit",
       status: selectedParcel && drawingCount > 0 ? "current" : "locked",
       helper:
@@ -54,6 +72,7 @@ export function WorkflowSteps() {
   const searchError = useQuickSiteStore((state) => state.searchError);
   const selectedParcelLoading = useQuickSiteStore((state) => state.selectedParcelLoading);
   const drawingCount = useDrawingStore((state) => state.drawings.length);
+  const importedPointCount = usePointImportStore((state) => state.importedPoints.length);
   const setSelectedParcel = useQuickSiteStore((state) => state.setSelectedParcel);
   const setNeighbors = useQuickSiteStore((state) => state.setNeighbors);
   const setSearchResults = useQuickSiteStore((state) => state.setSearchResults);
@@ -62,7 +81,7 @@ export function WorkflowSteps() {
   const resetQuickSite = useQuickSiteStore((state) => state.resetSession);
   const resetDrawings = useDrawingStore((state) => state.resetSession);
 
-  const steps = buildSteps(Boolean(selectedParcel), drawingCount);
+  const steps = buildSteps(Boolean(selectedParcel), drawingCount, importedPointCount);
 
   const handleUseSampleParcel = () => {
     setSearchText(rampartParcelFixture.address);
