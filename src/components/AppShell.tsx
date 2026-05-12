@@ -11,8 +11,11 @@ type AppShellProps = {
 };
 
 export function AppShell({ left, map, right, subtitle, exportReady }: AppShellProps) {
-  const handleExport = (basemap: BasemapKey) => {
-    const payload = createExportSessionPayload({ basemap });
+  const handleExport = (
+    basemap: BasemapKey,
+    exportMode: "default" | "streets-context" | "streets-detail" | "satellite",
+  ) => {
+    const payload = createExportSessionPayload({ basemap, exportMode });
     saveExportSession(payload);
     const exportUrl = new URL(window.location.href);
     exportUrl.searchParams.set("export", "1");
@@ -32,15 +35,23 @@ export function AppShell({ left, map, right, subtitle, exportReady }: AppShellPr
           <button
             className="secondary-button"
             disabled={!exportReady}
-            onClick={() => handleExport("streets")}
+            onClick={() => handleExport("streets", "streets-context")}
             type="button"
           >
-            Preview streets PDF
+            Preview streets context PDF
+          </button>
+          <button
+            className="secondary-button"
+            disabled={!exportReady}
+            onClick={() => handleExport("streets", "streets-detail")}
+            type="button"
+          >
+            Preview streets detail PDF
           </button>
           <button
             className="primary-button"
             disabled={!exportReady}
-            onClick={() => handleExport("satellite")}
+            onClick={() => handleExport("satellite", "satellite")}
             type="button"
           >
             Preview satellite PDF

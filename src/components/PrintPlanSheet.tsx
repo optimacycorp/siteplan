@@ -18,9 +18,10 @@ function formatFeatureLabel(type: string, count: number) {
 
 type PrintPlanSheetProps = {
   variant: "map" | "details";
+  exportMode?: "default" | "streets-context" | "streets-detail" | "satellite";
 };
 
-export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
+export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanSheetProps) {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
   const basemap = useQuickSiteStore((state) => state.basemap);
   const contoursVisible = useQuickSiteStore((state) => Boolean(state.layerVisibility.contours));
@@ -102,6 +103,15 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
             <div className="print-kicker">Optimacy QuickSite</div>
             <h1>{exportMeta.projectTitle || "Conceptual Site Plan Exhibit"}</h1>
             <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
+            <p className="muted">
+              {exportMode === "streets-detail"
+                ? "Detailed streets parcel view"
+                : exportMode === "streets-context"
+                  ? "Context streets parcel view"
+                  : basemap === "satellite"
+                    ? "Satellite parcel view"
+                    : "Parcel exhibit view"}
+            </p>
           </div>
           <div className="print-card-header-tools">
             <PrintScaleBar />
@@ -113,7 +123,14 @@ export function PrintPlanSheet({ variant }: PrintPlanSheetProps) {
         <div className="print-card print-card-map-footer">
           <div>
             <div className="print-section-title">Map type</div>
-            <p>{basemap === "streets" ? "Streets" : basemap === "satellite" ? "Satellite" : basemap}</p>
+            <p>
+              {basemap === "streets" ? "Streets" : basemap === "satellite" ? "Satellite" : basemap}
+              {exportMode === "streets-context"
+                ? " | Context"
+                : exportMode === "streets-detail"
+                  ? " | Detail"
+                  : ""}
+            </p>
           </div>
           <div>
             <div className="print-section-title">Source</div>

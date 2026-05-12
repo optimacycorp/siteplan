@@ -10,6 +10,7 @@ const EXPORT_SESSION_KEY = "optimacy-quicksite-export-session";
 
 export type ExportSessionPayload = {
   basemap: string;
+  exportMode?: "default" | "streets-context" | "streets-detail" | "satellite";
   selectedParcel: ParcelDetail | null;
   neighbors: ParcelNeighbor[];
   mapView: { center: [number, number]; zoom: number };
@@ -36,13 +37,17 @@ export type ExportSessionPayload = {
   pointTransform: LocalPointTransform;
 };
 
-export function createExportSessionPayload(options?: { basemap?: BasemapKey }): ExportSessionPayload {
+export function createExportSessionPayload(options?: {
+  basemap?: BasemapKey;
+  exportMode?: ExportSessionPayload["exportMode"];
+}): ExportSessionPayload {
   const quickSiteState = useQuickSiteStore.getState();
   const drawingState = useDrawingStore.getState();
   const pointImportState = usePointImportStore.getState();
 
   return {
     basemap: options?.basemap ?? quickSiteState.basemap,
+    exportMode: options?.exportMode ?? "default",
     selectedParcel: quickSiteState.selectedParcel,
     neighbors: quickSiteState.neighbors,
     mapView: quickSiteState.mapView,

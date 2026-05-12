@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { readExportSession } from "../export/exportSession";
+import { geometryBounds, pointBounds } from "../map/mapUtils";
 import { QuickMapCanvas } from "../map/QuickMapCanvas";
 import { useDrawingStore } from "../state/drawingStore";
 import { usePointImportStore } from "../state/pointImportStore";
@@ -8,8 +9,10 @@ import { PrintPlanSheet } from "./PrintPlanSheet";
 
 export function ExportOnlyApp() {
   const [ready, setReady] = useState(false);
+  const [exportMode, setExportMode] = useState<"default" | "streets-context" | "streets-detail" | "satellite">("default");
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const setExportMeta = useQuickSiteStore((state) => state.setExportMeta);
+  const focusMapBounds = useQuickSiteStore((state) => state.focusMapBounds);
   const hydrateQuickSite = useQuickSiteStore((state) => state.hydrateExportSession);
   const hydrateDrawings = useDrawingStore((state) => state.hydrateExportSession);
   const hydratePoints = usePointImportStore((state) => state.hydrateExportSession);
@@ -20,6 +23,7 @@ export function ExportOnlyApp() {
       setReady(true);
       return;
     }
+    setExportMode(payload.exportMode ?? "default");
 
     hydrateQuickSite({
       basemap: payload.basemap as never,
@@ -37,8 +41,24 @@ export function ExportOnlyApp() {
       importedPoints: payload.importedPoints,
       transform: payload.pointTransform,
     });
+    if (payload.exportMode === "streets-detail") {
+      const bounds = [
+        payload.selectedParcel?.geometry ? geometryBounds(payload.selectedParcel.geometry) : null,
+        payload.importedPoints.length
+          ? pointBounds(payload.importedPoints.map((point) => ({ lng: point.lng, lat: point.lat })))
+          : null,
+      ].filter(Boolean) as Array<[[number, number], [number, number]]>;
+
+      if (bounds.length) {
+        const mergedBounds = bounds.reduce((acc, next) => [
+          [Math.min(acc[0][0], next[0][0]), Math.min(acc[0][1], next[0][1])],
+          [Math.max(acc[1][0], next[1][0]), Math.max(acc[1][1], next[1][1])],
+        ]);
+        focusMapBounds(mergedBounds, payload.importedPoints.length ? 20 : 19);
+      }
+    }
     setReady(true);
-  }, [hydrateDrawings, hydratePoints, hydrateQuickSite]);
+  }, [focusMapBounds, hydrateDrawings, hydratePoints, hydrateQuickSite]);
 
   useEffect(() => {
     if (!ready) return;
@@ -88,7 +108,13 @@ export function ExportOnlyApp() {
       <div className="export-preview-toolbar">
         <div>
           <strong>Export preview</strong>
-          <p className="muted">Review the map sheet, choose letter or tabloid, then print or save PDF.</p>
+          <p className="muted">
+            {exportMode === "streets-detail"
+              ? "Detail streets view fitted to the selected parcel and imported points."
+              : exportMode === "streets-context"
+                ? "Context streets view preserving the current map extent and visible layers."
+                : "Review the map sheet, choose letter or tabloid, then print or save PDF."}
+          </p>
         </div>
         <label className="field-label export-preview-field" htmlFor="export-page-size">
           Page size
@@ -117,9 +143,9 @@ export function ExportOnlyApp() {
       </div>
       <div className="map-panel export-only-map-panel">
         <QuickMapCanvas />
-        <PrintPlanSheet variant="map" />
+        <PrintPlanSheet variant="map" exportMode={exportMode} />
       </div>
-      <PrintPlanSheet variant="details" />
+      <PrintPlanSheet variant="details" exportMode={exportMode} />
     </div>
   );
 }
