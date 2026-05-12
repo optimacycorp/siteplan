@@ -11,11 +11,16 @@ export function ExportOnlyApp() {
   const [ready, setReady] = useState(false);
   const [exportMode, setExportMode] = useState<"default" | "streets-context" | "streets-detail" | "satellite">("default");
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
+  const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
+  const mapView = useQuickSiteStore((state) => state.mapView);
   const setExportMeta = useQuickSiteStore((state) => state.setExportMeta);
   const focusMapBounds = useQuickSiteStore((state) => state.focusMapBounds);
+  const focusMapPoint = useQuickSiteStore((state) => state.focusMapPoint);
   const hydrateQuickSite = useQuickSiteStore((state) => state.hydrateExportSession);
   const hydrateDrawings = useDrawingStore((state) => state.hydrateExportSession);
   const hydratePoints = usePointImportStore((state) => state.hydrateExportSession);
+  const importedPoints = usePointImportStore((state) => state.importedPoints);
+  const selectedPointId = usePointImportStore((state) => state.selectedPointId);
 
   useEffect(() => {
     const payload = readExportSession();
@@ -40,6 +45,7 @@ export function ExportOnlyApp() {
     hydratePoints({
       importedPoints: payload.importedPoints,
       transform: payload.pointTransform,
+      selectedPointId: payload.selectedPointId,
     });
     if (payload.exportMode === "streets-detail") {
       const bounds = [
@@ -59,6 +65,28 @@ export function ExportOnlyApp() {
     }
     setReady(true);
   }, [focusMapBounds, hydrateDrawings, hydratePoints, hydrateQuickSite]);
+
+  function centerOnParcel() {
+    if (selectedParcel?.centroid) {
+      focusMapPoint(selectedParcel.centroid, mapView.zoom);
+      return;
+    }
+    const bounds = selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null;
+    if (bounds) {
+      const center: [number, number] = [
+        (bounds[0][0] + bounds[1][0]) / 2,
+        (bounds[0][1] + bounds[1][1]) / 2,
+      ];
+      focusMapPoint(center, mapView.zoom);
+    }
+  }
+
+  function centerOnPoint() {
+    const targetPoint =
+      importedPoints.find((point) => point.id === selectedPointId) ?? importedPoints[0] ?? null;
+    if (!targetPoint) return;
+    focusMapPoint([targetPoint.lng, targetPoint.lat], mapView.zoom);
+  }
 
   useEffect(() => {
     if (!ready) return;
@@ -133,6 +161,22 @@ export function ExportOnlyApp() {
           </select>
         </label>
         <div className="card-actions">
+          <button
+            className="secondary-button"
+            disabled={!selectedParcel}
+            onClick={centerOnParcel}
+            type="button"
+          >
+            Center on parcel
+          </button>
+          <button
+            className="secondary-button"
+            disabled={!importedPoints.length}
+            onClick={centerOnPoint}
+            type="button"
+          >
+            Center on point
+          </button>
           <button className="primary-button" onClick={() => window.print()} type="button">
             Print / Save PDF
           </button>

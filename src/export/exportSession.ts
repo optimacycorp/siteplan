@@ -34,6 +34,7 @@ export type ExportSessionPayload = {
   layerVisibility: Record<string, boolean>;
   drawings: DrawingFeature[];
   importedPoints: ImportedPoint[];
+  selectedPointId: string | null;
   pointTransform: LocalPointTransform;
 };
 
@@ -56,6 +57,7 @@ export function createExportSessionPayload(options?: {
     layerVisibility: quickSiteState.layerVisibility,
     drawings: drawingState.drawings,
     importedPoints: pointImportState.importedPoints,
+    selectedPointId: pointImportState.selectedPointId,
     pointTransform: pointImportState.transform,
   };
 }

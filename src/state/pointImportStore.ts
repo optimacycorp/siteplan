@@ -31,6 +31,7 @@ type PointImportState = {
   hydrateExportSession: (payload: {
     importedPoints: ImportedPoint[];
     transform: LocalPointTransform;
+    selectedPointId?: string | null;
   }) => void;
   resetSession: () => void;
 };
@@ -192,7 +193,7 @@ export const usePointImportStore = create<PointImportState>()(
           previewRows: [],
           previewPoints: [],
           importError: "",
-          selectedPointId: null,
+          selectedPointId: payload.selectedPointId ?? null,
           importFormat: "local-xy-csv",
           wizardStep: "load",
         }),
