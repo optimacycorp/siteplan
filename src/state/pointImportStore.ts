@@ -1,10 +1,16 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { ImportedPoint, LocalPointTransform, ParsedFieldPointRow } from "../types/fieldPoint";
+import type {
+  ImportedPoint,
+  LocalPointTransform,
+  ParsedFieldPointRow,
+  PointImportFormat,
+} from "../types/fieldPoint";
 import { parseFieldPointCsv } from "../utils/fieldPointCsv";
 import { transformLocalRows } from "../utils/localCoordinateTransform";
 
 type PointImportState = {
+  importFormat: PointImportFormat;
   transform: LocalPointTransform;
   previewRows: ParsedFieldPointRow[];
   previewPoints: ImportedPoint[];
@@ -12,6 +18,7 @@ type PointImportState = {
   importError: string;
   selectedPointId: string | null;
   wizardStep: "load" | "origin" | "preview" | "saved";
+  setImportFormat: (format: PointImportFormat) => void;
   setWizardStep: (step: "load" | "origin" | "preview" | "saved") => void;
   parseCsvText: (text: string) => void;
   setTransform: (patch: Partial<LocalPointTransform>) => void;
@@ -49,10 +56,7 @@ const defaultTransform: LocalPointTransform = {
   scaleFactor: 1,
 };
 
-function toImportedPoint(
-  row: ParsedFieldPointRow,
-  transformed: { lng: number; lat: number },
-): ImportedPoint {
+function toImportedPoint(row: ParsedFieldPointRow, transformed: { lng: number; lat: number }): ImportedPoint {
   return {
     id: crypto.randomUUID(),
     pointNumber: row.pointNumber,
@@ -64,7 +68,7 @@ function toImportedPoint(
     elevation: row.elevation,
     lng: transformed.lng,
     lat: transformed.lat,
-    source: "local-csv",
+    source: row.sourceFormat,
     createdAt: new Date().toISOString(),
   };
 }
@@ -72,6 +76,7 @@ function toImportedPoint(
 export const usePointImportStore = create<PointImportState>()(
   persist(
     (set, get) => ({
+      importFormat: "local-xy-csv",
       transform: defaultTransform,
       previewRows: [],
       previewPoints: [],
@@ -79,9 +84,17 @@ export const usePointImportStore = create<PointImportState>()(
       importError: "",
       selectedPointId: null,
       wizardStep: "load",
+      setImportFormat: (importFormat) =>
+        set({
+          importFormat,
+          previewRows: [],
+          previewPoints: [],
+          importError: "",
+          wizardStep: "load",
+        }),
       setWizardStep: (wizardStep) => set({ wizardStep, importError: "" }),
       parseCsvText: (text) => {
-        const parsed = parseFieldPointCsv(text);
+        const parsed = parseFieldPointCsv(text, get().importFormat);
         set({
           previewRows: parsed.rows,
           previewPoints: [],
@@ -108,12 +121,30 @@ export const usePointImportStore = create<PointImportState>()(
         })),
       previewTransformedPoints: () => {
         const { previewRows, transform } = get();
-        if (!transform.origin) {
-          set({ importError: "Choose an origin before previewing imported points." });
-          return;
-        }
         if (!previewRows.length) {
           set({ importError: "Paste or load a CSV before previewing points." });
+          return;
+        }
+
+        if (previewRows[0]?.sourceFormat === "emlid-flow-360-csv") {
+          const directRows = previewRows.filter(
+            (row) => Number.isFinite(row.lng) && Number.isFinite(row.lat),
+          );
+          set({
+            previewPoints: directRows.map((row) =>
+              toImportedPoint(row, {
+                lng: row.lng as number,
+                lat: row.lat as number,
+              }),
+            ),
+            importError: "",
+            wizardStep: "preview",
+          });
+          return;
+        }
+
+        if (!transform.origin) {
+          set({ importError: "Choose an origin before previewing imported points." });
           return;
         }
 
@@ -162,10 +193,12 @@ export const usePointImportStore = create<PointImportState>()(
           previewPoints: [],
           importError: "",
           selectedPointId: null,
+          importFormat: "local-xy-csv",
           wizardStep: "load",
         }),
       resetSession: () =>
         set({
+          importFormat: "local-xy-csv",
           transform: defaultTransform,
           previewRows: [],
           previewPoints: [],
@@ -179,6 +212,7 @@ export const usePointImportStore = create<PointImportState>()(
       name: "optimacy-quicksite-field-points",
       storage: createJSONStorage(safeStorage),
       partialize: (state) => ({
+        importFormat: state.importFormat,
         transform: state.transform,
         importedPoints: state.importedPoints,
         selectedPointId: state.selectedPointId,

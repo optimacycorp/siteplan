@@ -27,4 +27,15 @@ describe("pointImportStore", () => {
     usePointImportStore.getState().commitPreviewPoints();
     expect(usePointImportStore.getState().importedPoints).toHaveLength(1);
   });
+
+  it("previews Emlid Flow 360 rows without a local origin", () => {
+    const store = usePointImportStore.getState();
+    store.setImportFormat("emlid-flow-360-csv");
+    store.parseCsvText(
+      "Name,Longitude,Latitude,Elevation,Description\n1,-104.83933438,38.80878427,1823.608,CP1",
+    );
+    store.previewTransformedPoints();
+    expect(usePointImportStore.getState().previewPoints).toHaveLength(1);
+    expect(usePointImportStore.getState().importError).toBe("");
+  });
 });

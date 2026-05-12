@@ -17,12 +17,14 @@ export function PointImportPanel() {
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
   const mapView = useQuickSiteStore((state) => state.mapView);
   const {
+    importFormat,
     transform,
     previewRows,
     previewPoints,
     importedPoints,
     importError,
     wizardStep,
+    setImportFormat,
     setWizardStep,
     parseCsvText,
     setTransform,
@@ -31,6 +33,7 @@ export function PointImportPanel() {
     commitPreviewPoints,
   } = usePointImportStore();
   const [csvText, setCsvText] = useState("");
+  const isEmlidFormat = importFormat === "emlid-flow-360-csv";
 
   const loadStepNotice = useMemo(() => {
     if (importError) {
@@ -40,10 +43,12 @@ export function PointImportPanel() {
       return "Load a CSV file or paste CSV text to begin the import.";
     }
     if (!previewRows.length) {
-      return "No usable point rows have been parsed yet. Check the header names and required northing/easting values.";
+      return isEmlidFormat
+        ? "No usable Emlid rows have been parsed yet. Check the Name, Longitude, and Latitude columns."
+        : "No usable point rows have been parsed yet. Check the header names and required northing/easting values.";
     }
     return "";
-  }, [csvText, importError, previewRows.length]);
+  }, [csvText, importError, isEmlidFormat, previewRows.length]);
 
   const originStepChecks = useMemo(
     () => [
@@ -52,15 +57,19 @@ export function PointImportPanel() {
         ok: previewRows.length > 0,
       },
       {
-        label: "Map origin selected",
-        ok: Boolean(transform.origin),
+        label: isEmlidFormat ? "Direct geographic coordinates detected" : "Map origin selected",
+        ok: isEmlidFormat
+          ? previewRows.every((row) => Number.isFinite(row.lng) && Number.isFinite(row.lat))
+          : Boolean(transform.origin),
       },
       {
-        label: "Scale factor is positive",
-        ok: Number.isFinite(transform.scaleFactor) && transform.scaleFactor > 0,
+        label: isEmlidFormat ? "No local transform required" : "Scale factor is positive",
+        ok: isEmlidFormat
+          ? true
+          : Number.isFinite(transform.scaleFactor) && transform.scaleFactor > 0,
       },
     ],
-    [previewRows.length, transform.origin, transform.scaleFactor],
+    [isEmlidFormat, previewRows, transform.origin, transform.scaleFactor],
   );
 
   const previewStepNotice = useMemo(() => {
@@ -124,6 +133,25 @@ export function PointImportPanel() {
 
           {wizardStep === "load" ? (
             <>
+              <label className="field-label" htmlFor="point-import-format">
+                Import format
+                <select
+                  className="search-input"
+                  id="point-import-format"
+                  value={importFormat}
+                  onChange={(event) => {
+                    const nextFormat =
+                      event.target.value === "emlid-flow-360-csv"
+                        ? "emlid-flow-360-csv"
+                        : "local-xy-csv";
+                    setImportFormat(nextFormat);
+                  }}
+                >
+                  <option value="local-xy-csv">Local XY CSV</option>
+                  <option value="emlid-flow-360-csv">Emlid Flow 360 csv export</option>
+                </select>
+              </label>
+
               <label className="field-label" htmlFor="point-csv-file">
                 CSV file
                 <input
@@ -141,7 +169,11 @@ export function PointImportPanel() {
                   id="point-csv-text"
                   value={csvText}
                   onChange={(event) => setCsvText(event.target.value)}
-                  placeholder="Paste point,name,northing,easting,elevation,code,note CSV here"
+                  placeholder={
+                    isEmlidFormat
+                      ? "Paste Emlid Flow 360 CSV with Name, Longitude, Latitude, Elevation..."
+                      : "Paste point,name,northing,easting,elevation,code,note CSV here"
+                  }
                 />
               </label>
 
@@ -167,137 +199,145 @@ export function PointImportPanel() {
 
           {wizardStep === "origin" ? (
             <>
-              <div className="toolbar-grid compact-grid two-column-grid">
-                <button
-                  className="secondary-button"
-                  disabled={!selectedParcel?.centroid}
-                  onClick={() => {
-                    if (selectedParcel?.centroid) {
-                      setOriginFromLngLat(
-                        selectedParcel.centroid[0],
-                        selectedParcel.centroid[1],
-                        selectedParcel.address || selectedParcel.headline || "Parcel centroid",
-                      );
-                    }
-                  }}
-                  type="button"
-                >
-                  Use parcel centroid
-                </button>
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    setOriginFromLngLat(mapView.center[0], mapView.center[1], "Map center")
-                  }
-                  type="button"
-                >
-                  Use map center
-                </button>
-              </div>
+              {isEmlidFormat ? (
+                <InlineNotice tone="success">
+                  Emlid Flow 360 exports already include longitude and latitude, so no local origin or rotation is required.
+                </InlineNotice>
+              ) : (
+                <>
+                  <div className="toolbar-grid compact-grid two-column-grid">
+                    <button
+                      className="secondary-button"
+                      disabled={!selectedParcel?.centroid}
+                      onClick={() => {
+                        if (selectedParcel?.centroid) {
+                          setOriginFromLngLat(
+                            selectedParcel.centroid[0],
+                            selectedParcel.centroid[1],
+                            selectedParcel.address || selectedParcel.headline || "Parcel centroid",
+                          );
+                        }
+                      }}
+                      type="button"
+                    >
+                      Use parcel centroid
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() =>
+                        setOriginFromLngLat(mapView.center[0], mapView.center[1], "Map center")
+                      }
+                      type="button"
+                    >
+                      Use map center
+                    </button>
+                  </div>
 
-              <div className="toolbar-grid compact-grid two-column-grid">
-                <label className="field-label" htmlFor="point-units">
-                  Units
-                  <select
-                    className="search-input"
-                    id="point-units"
-                    value={transform.units}
-                    onChange={(event) =>
-                      setTransform({
-                        units: event.target.value === "meters" ? "meters" : "feet",
-                      })
-                    }
-                  >
-                    <option value="feet">Local XY (feet)</option>
-                    <option value="meters">Local XY (meters)</option>
-                  </select>
-                </label>
-                <label className="field-label" htmlFor="point-rotation">
-                  Rotation (deg clockwise)
-                  <input
-                    className="search-input"
-                    id="point-rotation"
-                    type="number"
-                    value={transform.rotationDegrees}
-                    onChange={(event) =>
-                      setTransform({ rotationDegrees: Number(event.target.value) || 0 })
-                    }
-                  />
-                </label>
-              </div>
+                  <div className="toolbar-grid compact-grid two-column-grid">
+                    <label className="field-label" htmlFor="point-units">
+                      Units
+                      <select
+                        className="search-input"
+                        id="point-units"
+                        value={transform.units}
+                        onChange={(event) =>
+                          setTransform({
+                            units: event.target.value === "meters" ? "meters" : "feet",
+                          })
+                        }
+                      >
+                        <option value="feet">Local XY (feet)</option>
+                        <option value="meters">Local XY (meters)</option>
+                      </select>
+                    </label>
+                    <label className="field-label" htmlFor="point-rotation">
+                      Rotation (deg clockwise)
+                      <input
+                        className="search-input"
+                        id="point-rotation"
+                        type="number"
+                        value={transform.rotationDegrees}
+                        onChange={(event) =>
+                          setTransform({ rotationDegrees: Number(event.target.value) || 0 })
+                        }
+                      />
+                    </label>
+                  </div>
 
-              <div className="toolbar-grid compact-grid two-column-grid">
-                <label className="field-label" htmlFor="point-scale">
-                  Scale factor
-                  <input
-                    className="search-input"
-                    id="point-scale"
-                    type="number"
-                    step="0.000001"
-                    value={transform.scaleFactor}
-                    onChange={(event) =>
-                      setTransform({ scaleFactor: Number(event.target.value) || 1 })
-                    }
-                  />
-                </label>
-                <label className="field-label" htmlFor="point-origin-label">
-                  Origin label
-                  <input
-                    className="search-input"
-                    id="point-origin-label"
-                    value={transform.origin?.label || ""}
-                    onChange={(event) =>
-                      setTransform({
-                        origin: transform.origin
-                          ? { ...transform.origin, label: event.target.value }
-                          : null,
-                      })
-                    }
-                    placeholder="Origin label"
-                  />
-                </label>
-              </div>
+                  <div className="toolbar-grid compact-grid two-column-grid">
+                    <label className="field-label" htmlFor="point-scale">
+                      Scale factor
+                      <input
+                        className="search-input"
+                        id="point-scale"
+                        type="number"
+                        step="0.000001"
+                        value={transform.scaleFactor}
+                        onChange={(event) =>
+                          setTransform({ scaleFactor: Number(event.target.value) || 1 })
+                        }
+                      />
+                    </label>
+                    <label className="field-label" htmlFor="point-origin-label">
+                      Origin label
+                      <input
+                        className="search-input"
+                        id="point-origin-label"
+                        value={transform.origin?.label || ""}
+                        onChange={(event) =>
+                          setTransform({
+                            origin: transform.origin
+                              ? { ...transform.origin, label: event.target.value }
+                              : null,
+                          })
+                        }
+                        placeholder="Origin label"
+                      />
+                    </label>
+                  </div>
 
-              <div className="toolbar-grid compact-grid two-column-grid">
-                <label className="field-label" htmlFor="point-origin-lng">
-                  Origin longitude
-                  <input
-                    className="search-input"
-                    id="point-origin-lng"
-                    type="number"
-                    step="0.000001"
-                    value={transform.origin?.lng ?? ""}
-                    onChange={(event) => {
-                      const lng = Number(event.target.value);
-                      setTransform({
-                        origin:
-                          transform.origin && Number.isFinite(lng)
-                            ? { ...transform.origin, lng }
-                            : transform.origin,
-                      });
-                    }}
-                  />
-                </label>
-                <label className="field-label" htmlFor="point-origin-lat">
-                  Origin latitude
-                  <input
-                    className="search-input"
-                    id="point-origin-lat"
-                    type="number"
-                    step="0.000001"
-                    value={transform.origin?.lat ?? ""}
-                    onChange={(event) => {
-                      const lat = Number(event.target.value);
-                      setTransform({
-                        origin:
-                          transform.origin && Number.isFinite(lat)
-                            ? { ...transform.origin, lat }
-                            : transform.origin,
-                      });
-                    }}
-                  />
-                </label>
-              </div>
+                  <div className="toolbar-grid compact-grid two-column-grid">
+                    <label className="field-label" htmlFor="point-origin-lng">
+                      Origin longitude
+                      <input
+                        className="search-input"
+                        id="point-origin-lng"
+                        type="number"
+                        step="0.000001"
+                        value={transform.origin?.lng ?? ""}
+                        onChange={(event) => {
+                          const lng = Number(event.target.value);
+                          setTransform({
+                            origin:
+                              transform.origin && Number.isFinite(lng)
+                                ? { ...transform.origin, lng }
+                                : transform.origin,
+                          });
+                        }}
+                      />
+                    </label>
+                    <label className="field-label" htmlFor="point-origin-lat">
+                      Origin latitude
+                      <input
+                        className="search-input"
+                        id="point-origin-lat"
+                        type="number"
+                        step="0.000001"
+                        value={transform.origin?.lat ?? ""}
+                        onChange={(event) => {
+                          const lat = Number(event.target.value);
+                          setTransform({
+                            origin:
+                              transform.origin && Number.isFinite(lat)
+                                ? { ...transform.origin, lat }
+                                : transform.origin,
+                          });
+                        }}
+                      />
+                    </label>
+                  </div>
+                </>
+              )}
 
               <InlineNotice tone={canPreviewPoints ? "success" : "warning"}>
                 {canPreviewPoints

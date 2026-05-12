@@ -14,7 +14,7 @@ function feetToMeters(value: number) {
 }
 
 export function transformLocalCoordinate(
-  row: Pick<ParsedFieldPointRow, "northing" | "easting">,
+  row: { northing: number; easting: number },
   transform: LocalPointTransform,
 ): TransformedPoint {
   if (!transform.origin) {
@@ -50,10 +50,14 @@ export function transformLocalRows(
   rows: ParsedFieldPointRow[],
   transform: LocalPointTransform,
 ) {
-  return rows.map((row) => ({
-    row,
-    ...transformLocalCoordinate(row, transform),
-  }));
+  return rows
+    .filter((row): row is ParsedFieldPointRow & { northing: number; easting: number } =>
+      Number.isFinite(row.northing) && Number.isFinite(row.easting),
+    )
+    .map((row) => ({
+      row,
+      ...transformLocalCoordinate(row, transform),
+    }));
 }
 
 export const __testUtils = {
