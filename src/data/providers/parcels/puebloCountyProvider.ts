@@ -121,7 +121,7 @@ function extractZip(query: string) {
 
 function looksLikePuebloQuery(query: string) {
   const normalized = normalizeText(query);
-  return /(pueblo|pueblo west|beulah|rye|co|colorado)/.test(normalized);
+  return /\b(pueblo|pueblo west|beulah|rye|avondale|boone)\b/.test(normalized);
 }
 
 function looksLikeParcelIdentifier(query: string) {
