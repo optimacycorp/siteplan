@@ -10,6 +10,7 @@ import { PrintPlanSheet } from "./PrintPlanSheet";
 export function ExportOnlyApp() {
   const [ready, setReady] = useState(false);
   const [exportMode, setExportMode] = useState<"default" | "streets-context" | "streets-detail" | "satellite">("default");
+  const [framingMode, setFramingMode] = useState<"preserve-zoom" | "fit-to-content">("preserve-zoom");
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
   const mapView = useQuickSiteStore((state) => state.mapView);
@@ -21,6 +22,14 @@ export function ExportOnlyApp() {
   const hydratePoints = usePointImportStore((state) => state.hydrateExportSession);
   const importedPoints = usePointImportStore((state) => state.importedPoints);
   const selectedPointId = usePointImportStore((state) => state.selectedPointId);
+
+  function mergeBounds(bounds: Array<[[number, number], [number, number]]>) {
+    if (!bounds.length) return null;
+    return bounds.reduce((acc, next) => [
+      [Math.min(acc[0][0], next[0][0]), Math.min(acc[0][1], next[0][1])],
+      [Math.max(acc[1][0], next[1][0]), Math.max(acc[1][1], next[1][1])],
+    ]);
+  }
 
   useEffect(() => {
     const payload = readExportSession();
@@ -56,10 +65,11 @@ export function ExportOnlyApp() {
       ].filter(Boolean) as Array<[[number, number], [number, number]]>;
 
       if (bounds.length) {
-        const mergedBounds = bounds.reduce((acc, next) => [
-          [Math.min(acc[0][0], next[0][0]), Math.min(acc[0][1], next[0][1])],
-          [Math.max(acc[1][0], next[1][0]), Math.max(acc[1][1], next[1][1])],
-        ]);
+        const mergedBounds = mergeBounds(bounds);
+        if (!mergedBounds) {
+          setReady(true);
+          return;
+        }
         focusMapBounds(mergedBounds, payload.importedPoints.length ? 20 : 19);
       }
     }
@@ -67,15 +77,19 @@ export function ExportOnlyApp() {
   }, [focusMapBounds, hydrateDrawings, hydratePoints, hydrateQuickSite]);
 
   function centerOnParcel() {
+    const parcelBounds = selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null;
+    if (framingMode === "fit-to-content" && parcelBounds) {
+      focusMapBounds(parcelBounds, 19);
+      return;
+    }
     if (selectedParcel?.centroid) {
       focusMapPoint(selectedParcel.centroid, mapView.zoom);
       return;
     }
-    const bounds = selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null;
-    if (bounds) {
+    if (parcelBounds) {
       const center: [number, number] = [
-        (bounds[0][0] + bounds[1][0]) / 2,
-        (bounds[0][1] + bounds[1][1]) / 2,
+        (parcelBounds[0][0] + parcelBounds[1][0]) / 2,
+        (parcelBounds[0][1] + parcelBounds[1][1]) / 2,
       ];
       focusMapPoint(center, mapView.zoom);
     }
@@ -85,6 +99,17 @@ export function ExportOnlyApp() {
     const targetPoint =
       importedPoints.find((point) => point.id === selectedPointId) ?? importedPoints[0] ?? null;
     if (!targetPoint) return;
+    if (framingMode === "fit-to-content") {
+      const parcelBounds = selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null;
+      const pointClusterBounds = pointBounds(importedPoints.map((point) => ({ lng: point.lng, lat: point.lat })));
+      const mergedBounds = mergeBounds(
+        [parcelBounds, pointClusterBounds].filter(Boolean) as Array<[[number, number], [number, number]]>,
+      );
+      if (mergedBounds) {
+        focusMapBounds(mergedBounds, importedPoints.length ? 20 : 19);
+        return;
+      }
+    }
     focusMapPoint([targetPoint.lng, targetPoint.lat], mapView.zoom);
   }
 
@@ -158,6 +183,22 @@ export function ExportOnlyApp() {
           >
             <option value="letter">Letter landscape</option>
             <option value="tabloid">Tabloid landscape</option>
+          </select>
+        </label>
+        <label className="field-label export-preview-field" htmlFor="export-framing-mode">
+          Framing
+          <select
+            className="search-input"
+            id="export-framing-mode"
+            value={framingMode}
+            onChange={(event) =>
+              setFramingMode(
+                event.target.value === "fit-to-content" ? "fit-to-content" : "preserve-zoom",
+              )
+            }
+          >
+            <option value="preserve-zoom">Preserve current zoom</option>
+            <option value="fit-to-content">Fit to content</option>
           </select>
         </label>
         <div className="card-actions">
