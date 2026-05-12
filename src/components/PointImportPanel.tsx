@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { pointBounds } from "../map/mapUtils";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { EmptyState } from "./EmptyState";
@@ -16,6 +17,7 @@ const pointSteps: Array<{ key: WizardStep; label: string; helper: string }> = [
 export function PointImportPanel() {
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
   const mapView = useQuickSiteStore((state) => state.mapView);
+  const focusMapBounds = useQuickSiteStore((state) => state.focusMapBounds);
   const {
     importFormat,
     transform,
@@ -91,6 +93,19 @@ export function PointImportPanel() {
     const text = await file.text();
     setCsvText(text);
     parseCsvText(text);
+  }
+
+  function focusPoints(points: Array<{ lng: number; lat: number }>, maxZoom = 20) {
+    const bounds = pointBounds(points);
+    if (bounds) {
+      focusMapBounds(bounds, maxZoom);
+    }
+  }
+
+  function saveAndFocusPreviewPoints() {
+    const pointsToFocus = [...previewPoints];
+    commitPreviewPoints();
+    focusPoints(pointsToFocus);
   }
 
   const currentStepIndex = pointSteps.findIndex((step) => step.key === wizardStep);
@@ -395,7 +410,7 @@ export function PointImportPanel() {
                 <button
                   className="primary-button"
                   disabled={!canSavePreview}
-                  onClick={commitPreviewPoints}
+                  onClick={saveAndFocusPreviewPoints}
                   type="button"
                 >
                   Save imported points
@@ -414,8 +429,12 @@ export function PointImportPanel() {
                 <button className="primary-button" onClick={() => setWizardStep("load")} type="button">
                   Import another CSV
                 </button>
-                <button className="secondary-button" onClick={() => setWizardStep("preview")} type="button">
-                  Review saved import
+                <button
+                  className="secondary-button"
+                  onClick={() => focusPoints(importedPoints)}
+                  type="button"
+                >
+                  Zoom to imported points
                 </button>
               </div>
               <p className="muted">Saved points in this plan: {importedPoints.length}</p>
