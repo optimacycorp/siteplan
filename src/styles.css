@@ -81,6 +81,7 @@ select {
   min-height: 100vh;
   background: #fff;
   padding: 1rem;
+  overflow: auto;
 }
 
 .export-loading {
@@ -133,8 +134,19 @@ select {
 }
 
 .export-only-map-panel {
-  min-height: 100vh;
+  width: var(--sheet-page-width, 11in);
+  min-height: calc(var(--sheet-page-height, 8.5in) - 0.7in);
   border: 0;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.export-only-shell .print-sheet-details {
+  width: var(--sheet-page-width, 11in);
+  margin: 0.35in auto 0;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .panel-section {
@@ -938,9 +950,11 @@ select {
     display: block;
     min-height: auto;
     padding: 0;
+    overflow: visible;
   }
 
   .map-panel {
+    width: auto;
     position: relative;
     min-height: 7.4in;
     height: 7.4in;
@@ -989,6 +1003,9 @@ select {
   }
 
   .print-sheet-details {
+    width: auto;
+    margin: 0;
+    box-shadow: none;
     break-before: page;
     page-break-before: always;
   }

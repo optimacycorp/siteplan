@@ -18,6 +18,14 @@ export const PRINT_PAGE_SIZES: Record<PlotPageSize, string> = {
   "arch-e": "48in 36in",
 };
 
+export const PAPER_PAGE_INCHES: Record<PlotPageSize, { width: number; height: number }> = {
+  letter: { width: 11, height: 8.5 },
+  tabloid: { width: 17, height: 11 },
+  "arch-c": { width: 24, height: 18 },
+  "arch-d": { width: 36, height: 24 },
+  "arch-e": { width: 48, height: 36 },
+};
+
 export function formatPageSizeLabel(pageSize: PlotPageSize) {
   switch (pageSize) {
     case "arch-c":

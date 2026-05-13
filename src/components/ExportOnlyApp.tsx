@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { readExportSession } from "../export/exportSession";
 import {
   buildPlotSheetBounds,
@@ -6,6 +6,7 @@ import {
   fixedScaleBoundsForCenter,
   formatPageSizeLabel,
   mergeBounds,
+  PAPER_PAGE_INCHES,
   PRINT_PAGE_SIZES,
 } from "../export/plotSheet";
 import { distanceMeters, geometryBounds, pointBounds } from "../map/mapUtils";
@@ -54,6 +55,7 @@ export function ExportOnlyApp() {
       distanceMeters,
     });
   }, [contentBounds, exportMeta.pageSize, exportMeta.plotScaleFeetPerInch]);
+  const pageDimensions = PAPER_PAGE_INCHES[exportMeta.pageSize];
 
   const sheetPages = useMemo(() => {
     if (exportMeta.plotMode !== "fixed-scale") {
@@ -240,7 +242,15 @@ export function ExportOnlyApp() {
   }
 
   return (
-      <div className={`export-only-shell export-only-shell-${exportMeta.pageSize}`}>
+    <div
+      className={`export-only-shell export-only-shell-${exportMeta.pageSize}`}
+      style={
+        {
+          "--sheet-page-width": `${pageDimensions.width}in`,
+          "--sheet-page-height": `${pageDimensions.height}in`,
+        } as CSSProperties
+      }
+    >
       <div className="export-preview-toolbar">
         <div>
           <strong>Export preview</strong>
