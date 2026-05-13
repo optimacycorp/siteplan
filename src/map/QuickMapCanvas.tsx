@@ -550,6 +550,7 @@ export function QuickMapCanvas({
     });
 
     map.on("load", () => {
+      map.resize();
       syncAppLayers(map);
       if (exportBounds) {
         map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
@@ -562,9 +563,28 @@ export function QuickMapCanvas({
     });
     mapRef.current = map;
 
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            map.resize();
+            if (exportBounds) {
+              map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
+                padding: 0,
+                maxZoom: exportMaxZoom,
+                duration: 0,
+              });
+            }
+          })
+        : null;
+
+    if (resizeObserver && containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
     return () => {
       map.off("mousemove", handleMouseMove);
       map.off("mouseup", handleMouseUp);
+      resizeObserver?.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -696,6 +716,7 @@ export function QuickMapCanvas({
     const map = mapRef.current;
     if (!map || !exportBounds) return;
     exportReadyDispatchedRef.current = false;
+    map.resize();
     map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
       padding: 0,
       maxZoom: exportMaxZoom,
