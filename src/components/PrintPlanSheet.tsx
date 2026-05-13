@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import { distanceMeters, formatBearing, formatFeetLabel, summarizeDrawingFeature } from "../map/mapUtils";
+import { calculatePlotDiagnostics, formatPageSizeLabel, mergeBounds } from "../export/plotSheet";
+import {
+  distanceMeters,
+  formatBearing,
+  formatFeetLabel,
+  geometryBounds,
+  pointBounds,
+  summarizeDrawingFeature,
+} from "../map/mapUtils";
 import { useDrawingStore } from "../state/drawingStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
@@ -30,6 +38,28 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
   const drawings = useDrawingStore((state) => state.drawings);
   const importedPoints = usePointImportStore((state) => state.importedPoints);
   const pointTransform = usePointImportStore((state) => state.transform);
+  const contentBounds = useMemo(
+    () =>
+      mergeBounds(
+        [
+          parcel?.geometry ? geometryBounds(parcel.geometry) : null,
+          importedPoints.length
+            ? pointBounds(importedPoints.map((point) => ({ lng: point.lng, lat: point.lat })))
+            : null,
+        ].filter(Boolean) as Array<[[number, number], [number, number]]>,
+      ),
+    [importedPoints, parcel],
+  );
+  const plotDiagnostics = useMemo(
+    () =>
+      calculatePlotDiagnostics({
+        pageSize: exportMeta.pageSize,
+        feetPerInch: exportMeta.plotScaleFeetPerInch,
+        contentBounds,
+        distanceMeters,
+      }),
+    [contentBounds, exportMeta.pageSize, exportMeta.plotScaleFeetPerInch],
+  );
 
   const drawingSummary = useMemo(() => {
     const counts = drawings.reduce<Record<string, number>>((acc, drawing) => {
@@ -113,6 +143,32 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
                     : "Parcel exhibit view"}
             </p>
           </div>
+          <div className="print-title-block">
+            <div>
+              <span>Project no.</span>
+              <strong>{exportMeta.projectNumber || "-"}</strong>
+            </div>
+            <div>
+              <span>Sheet</span>
+              <strong>{exportMeta.sheetNumber || "-"}</strong>
+            </div>
+            <div>
+              <span>Revision</span>
+              <strong>{exportMeta.revision || "-"}</strong>
+            </div>
+            <div>
+              <span>Prepared for</span>
+              <strong>{exportMeta.preparedFor || "-"}</strong>
+            </div>
+            <div>
+              <span>Prepared by</span>
+              <strong>{exportMeta.preparedBy || "-"}</strong>
+            </div>
+            <div>
+              <span>Sheet size</span>
+              <strong>{formatPageSizeLabel(exportMeta.pageSize)}</strong>
+            </div>
+          </div>
           <div className="print-card-header-tools">
             <PrintScaleBar />
             <div className="print-north-arrow" aria-label="North arrow">
@@ -120,6 +176,28 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             </div>
           </div>
         </div>
+        {exportMeta.plotMode === "fixed-scale" && !plotDiagnostics.fits ? (
+          <div className="print-matchline-overlay" aria-hidden="true">
+            {Array.from({ length: plotDiagnostics.estimatedSheetColumns - 1 }, (_, index) => (
+              <div
+                className="print-matchline print-matchline-vertical"
+                key={`matchline-v-${index + 1}`}
+                style={{ left: `${((index + 1) / plotDiagnostics.estimatedSheetColumns) * 100}%` }}
+              >
+                <span>Matchline</span>
+              </div>
+            ))}
+            {Array.from({ length: plotDiagnostics.estimatedSheetRows - 1 }, (_, index) => (
+              <div
+                className="print-matchline print-matchline-horizontal"
+                key={`matchline-h-${index + 1}`}
+                style={{ top: `${((index + 1) / plotDiagnostics.estimatedSheetRows) * 100}%` }}
+              >
+                <span>Matchline</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div className="print-card print-card-map-footer">
           <div>
             <div className="print-section-title">Map type</div>
@@ -136,8 +214,18 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             <div className="print-section-title">Plot scale</div>
             <p>
               {exportMeta.plotMode === "fixed-scale"
-                ? `1" = ${exportMeta.plotScaleFeetPerInch}' at ${exportMeta.pageSize === "arch-d" ? "24x36" : exportMeta.pageSize}`
+                ? `1" = ${exportMeta.plotScaleFeetPerInch}' at ${formatPageSizeLabel(exportMeta.pageSize)}`
                 : "Visual fit (not fixed scale)"}
+            </p>
+          </div>
+          <div>
+            <div className="print-section-title">Fit status</div>
+            <p>
+              {exportMeta.plotMode === "fixed-scale"
+                ? plotDiagnostics.fits
+                  ? "Fits on 1 sheet"
+                  : `Approx. ${plotDiagnostics.estimatedSheetColumns} x ${plotDiagnostics.estimatedSheetRows} sheets needed`
+                : "Viewport composed visually"}
             </p>
           </div>
           <div>
@@ -153,7 +241,7 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             <div className="print-section-title">Disclaimer</div>
             <p>
               {exportMeta.plotMode === "fixed-scale"
-                ? `Scale valid only when printed at 100% on ${exportMeta.pageSize === "arch-d" ? "ARCH D 24x36" : exportMeta.pageSize}. Do not use fit-to-page scaling.`
+                ? `Scale valid only when printed at 100% on ${formatPageSizeLabel(exportMeta.pageSize)}. Do not use fit-to-page scaling.${plotDiagnostics.fits ? "" : ` Matchlines shown for an estimated ${plotDiagnostics.estimatedSheetColumns} x ${plotDiagnostics.estimatedSheetRows} sheet split.`}`
                 : contoursVisible
                 ? `Contours/elevation context shown from public USGS 3DEP/The National Map sources in ${contourUnits}. For planning only; verify with survey-grade field data where required.`
                 : "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, and public records should be independently verified."}
@@ -225,12 +313,16 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             </div>
             <div>
               <span>Sheet size</span>
+              <strong>{formatPageSizeLabel(exportMeta.pageSize)}</strong>
+            </div>
+            <div>
+              <span>Fit status</span>
               <strong>
-                {exportMeta.pageSize === "arch-d"
-                  ? "ARCH D 24x36"
-                  : exportMeta.pageSize === "tabloid"
-                    ? "Tabloid"
-                    : "Letter"}
+                {exportMeta.plotMode === "fixed-scale"
+                  ? plotDiagnostics.fits
+                    ? "Fits on 1 sheet"
+                    : `${plotDiagnostics.estimatedSheetColumns} x ${plotDiagnostics.estimatedSheetRows} sheets`
+                  : "Visual fit"}
               </strong>
             </div>
             <div>
@@ -358,7 +450,12 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
           </div>
           <div>
             <div className="print-section-title">Exhibit Notes</div>
-            <p>{exportMeta.notes || "Conceptual planning exhibit only."}</p>
+            <p>
+              {exportMeta.notes || "Conceptual planning exhibit only."}
+              {exportMeta.plotMode === "fixed-scale" && !plotDiagnostics.fits
+                ? ` Matchline planning suggests ${plotDiagnostics.estimatedSheetColumns} x ${plotDiagnostics.estimatedSheetRows} sheets at the selected scale.`
+                : ""}
+            </p>
           </div>
           <div>
             <div className="print-section-title">Source</div>

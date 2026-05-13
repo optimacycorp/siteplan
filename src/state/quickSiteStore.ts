@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { BasemapKey } from "../map/basemapRegistry";
+import type { PlotMode, PlotPageSize, PlotScaleFeetPerInch } from "../export/plotSheet";
 import type { ParcelDetail, ParcelNeighbor, ParcelSearchResult } from "../types/parcel";
 
 type QuickSiteState = {
@@ -28,9 +29,9 @@ type QuickSiteState = {
     sheetNumber: string;
     revision: string;
     notes: string;
-    pageSize: "letter" | "tabloid" | "arch-d";
-    plotMode: "visual-fit" | "fixed-scale";
-    plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
+    pageSize: PlotPageSize;
+    plotMode: PlotMode;
+    plotScaleFeetPerInch: PlotScaleFeetPerInch;
   };
   layerVisibility: Record<string, boolean>;
   mapFocusRequest: { key: string; bounds: [[number, number], [number, number]]; maxZoom?: number } | null;
@@ -68,9 +69,9 @@ type QuickSiteState = {
       sheetNumber: string;
       revision: string;
       notes: string;
-      pageSize: "letter" | "tabloid" | "arch-d";
-      plotMode: "visual-fit" | "fixed-scale";
-      plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
+      pageSize: PlotPageSize;
+      plotMode: PlotMode;
+      plotScaleFeetPerInch: PlotScaleFeetPerInch;
     }>,
   ) => void;
   hydrateExportSession: (payload: {
@@ -93,9 +94,9 @@ type QuickSiteState = {
       sheetNumber: string;
       revision: string;
       notes: string;
-      pageSize: "letter" | "tabloid" | "arch-d";
-      plotMode: "visual-fit" | "fixed-scale";
-      plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
+      pageSize: PlotPageSize;
+      plotMode: PlotMode;
+      plotScaleFeetPerInch: PlotScaleFeetPerInch;
     };
     layerVisibility: Record<string, boolean>;
   }) => void;

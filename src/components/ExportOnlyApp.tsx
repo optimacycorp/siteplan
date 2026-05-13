@@ -1,27 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { readExportSession } from "../export/exportSession";
+import {
+  calculatePlotDiagnostics,
+  fixedScaleBoundsForCenter,
+  formatPageSizeLabel,
+  mergeBounds,
+  PRINT_PAGE_SIZES,
+} from "../export/plotSheet";
 import { distanceMeters, geometryBounds, pointBounds } from "../map/mapUtils";
 import { QuickMapCanvas } from "../map/QuickMapCanvas";
 import { useDrawingStore } from "../state/drawingStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { PrintPlanSheet } from "./PrintPlanSheet";
-
-const PLOT_FRAME_INCHES: Record<"letter" | "tabloid" | "arch-d", { width: number; height: number }> = {
-  letter: { width: 10.3, height: 7.4 },
-  tabloid: { width: 16.3, height: 9.9 },
-  "arch-d": { width: 35.3, height: 22.5 },
-};
-
-function feetToLatitudeDegrees(feet: number) {
-  return (feet * 0.3048) / 111_320;
-}
-
-function feetToLongitudeDegrees(feet: number, latitude: number) {
-  const cosine = Math.cos((latitude * Math.PI) / 180);
-  const safeCosine = Math.max(0.2, Math.abs(cosine));
-  return (feet * 0.3048) / (111_320 * safeCosine);
-}
 
 export function ExportOnlyApp() {
   const [ready, setReady] = useState(false);
@@ -39,30 +30,6 @@ export function ExportOnlyApp() {
   const importedPoints = usePointImportStore((state) => state.importedPoints);
   const selectedPointId = usePointImportStore((state) => state.selectedPointId);
 
-  function mergeBounds(bounds: Array<[[number, number], [number, number]]>) {
-    if (!bounds.length) return null;
-    return bounds.reduce((acc, next) => [
-      [Math.min(acc[0][0], next[0][0]), Math.min(acc[0][1], next[0][1])],
-      [Math.max(acc[1][0], next[1][0]), Math.max(acc[1][1], next[1][1])],
-    ]);
-  }
-
-  function fixedScaleBoundsForCenter(
-    center: [number, number],
-    pageSize: "letter" | "tabloid" | "arch-d",
-    feetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100,
-  ): [[number, number], [number, number]] {
-    const frame = PLOT_FRAME_INCHES[pageSize];
-    const halfWidthFeet = (frame.width * feetPerInch) / 2;
-    const halfHeightFeet = (frame.height * feetPerInch) / 2;
-    const latDelta = feetToLatitudeDegrees(halfHeightFeet);
-    const lngDelta = feetToLongitudeDegrees(halfWidthFeet, center[1]);
-    return [
-      [center[0] - lngDelta, center[1] - latDelta],
-      [center[0] + lngDelta, center[1] + latDelta],
-    ];
-  }
-
   const contentBounds = useMemo(
     () =>
       mergeBounds(
@@ -77,42 +44,12 @@ export function ExportOnlyApp() {
   );
 
   const plotDiagnostics = useMemo(() => {
-    const frame = PLOT_FRAME_INCHES[exportMeta.pageSize];
-    const sheetWidthFeet = frame.width * exportMeta.plotScaleFeetPerInch;
-    const sheetHeightFeet = frame.height * exportMeta.plotScaleFeetPerInch;
-
-    if (!contentBounds) {
-      return {
-        sheetWidthFeet,
-        sheetHeightFeet,
-        contentWidthFeet: 0,
-        contentHeightFeet: 0,
-        fits: true,
-      };
-    }
-
-    const contentWidthFeet =
-      distanceMeters(
-        contentBounds[0][0],
-        contentBounds[0][1],
-        contentBounds[1][0],
-        contentBounds[0][1],
-      ) * 3.28084;
-    const contentHeightFeet =
-      distanceMeters(
-        contentBounds[0][0],
-        contentBounds[0][1],
-        contentBounds[0][0],
-        contentBounds[1][1],
-      ) * 3.28084;
-
-    return {
-      sheetWidthFeet,
-      sheetHeightFeet,
-      contentWidthFeet,
-      contentHeightFeet,
-      fits: contentWidthFeet <= sheetWidthFeet && contentHeightFeet <= sheetHeightFeet,
-    };
+    return calculatePlotDiagnostics({
+      pageSize: exportMeta.pageSize,
+      feetPerInch: exportMeta.plotScaleFeetPerInch,
+      contentBounds,
+      distanceMeters,
+    });
   }, [contentBounds, exportMeta.pageSize, exportMeta.plotScaleFeetPerInch]);
 
   useEffect(() => {
@@ -247,12 +184,7 @@ export function ExportOnlyApp() {
     const style = existing instanceof HTMLStyleElement ? existing : document.createElement("style");
     style.id = styleId;
     style.media = "print";
-    style.textContent =
-      exportMeta.pageSize === "arch-d"
-        ? "@page { size: 36in 24in; margin: 0.35in; }"
-        : exportMeta.pageSize === "tabloid"
-          ? "@page { size: 17in 11in; margin: 0.35in; }"
-          : "@page { size: 11in 8.5in; margin: 0.35in; }";
+    style.textContent = `@page { size: ${PRINT_PAGE_SIZES[exportMeta.pageSize]}; margin: 0.35in; }`;
     if (!existing) {
       document.head.appendChild(style);
     }
@@ -283,6 +215,13 @@ export function ExportOnlyApp() {
                 ? "Context streets view preserving the current map extent and visible layers."
                 : "Review the map sheet, choose letter or tabloid, then print or save PDF."}
           </p>
+          {exportMeta.plotMode === "fixed-scale" ? (
+            <div className={`plot-status-pill ${plotDiagnostics.fits ? "plot-status-pill-fit" : "plot-status-pill-overflow"}`}>
+              {plotDiagnostics.fits
+                ? `Fits on 1 ${formatPageSizeLabel(exportMeta.pageSize)} sheet`
+                : `Needs about ${plotDiagnostics.estimatedSheetColumns} x ${plotDiagnostics.estimatedSheetRows} sheets at this scale`}
+            </div>
+          ) : null}
         </div>
         <label className="field-label export-preview-field" htmlFor="export-page-size">
           Page size
@@ -293,8 +232,12 @@ export function ExportOnlyApp() {
             onChange={(event) =>
               setExportMeta({
                 pageSize:
-                  event.target.value === "arch-d"
+                  event.target.value === "arch-e"
+                    ? "arch-e"
+                    : event.target.value === "arch-d"
                     ? "arch-d"
+                    : event.target.value === "arch-c"
+                      ? "arch-c"
                     : event.target.value === "tabloid"
                       ? "tabloid"
                       : "letter",
@@ -303,7 +246,9 @@ export function ExportOnlyApp() {
           >
             <option value="letter">Letter landscape</option>
             <option value="tabloid">Tabloid landscape</option>
+            <option value="arch-c">ARCH C 18x24</option>
             <option value="arch-d">ARCH D 24x36</option>
+            <option value="arch-e">ARCH E 36x48</option>
           </select>
         </label>
         <label className="field-label export-preview-field" htmlFor="export-plot-mode">
@@ -386,15 +331,20 @@ export function ExportOnlyApp() {
       </div>
       {exportMeta.plotMode === "fixed-scale" ? (
         <div className="inline-notice inline-notice-warning">
-          Fixed-scale output is intended to be printed at 100% on {exportMeta.pageSize === "arch-d" ? "ARCH D 24x36" : exportMeta.pageSize}. Do not use browser fit-to-page scaling if you need the printed scale to remain accurate.
+          Fixed-scale output is intended to be printed at 100% on {formatPageSizeLabel(exportMeta.pageSize)}. Do not use browser fit-to-page scaling if you need the printed scale to remain accurate.
         </div>
       ) : null}
       {exportMeta.plotMode === "fixed-scale" ? (
         <div className={`inline-notice ${plotDiagnostics.fits ? "inline-notice-success" : "inline-notice-warning"}`}>
           Plot frame: about {plotDiagnostics.sheetWidthFeet.toFixed(0)}' wide x {plotDiagnostics.sheetHeightFeet.toFixed(0)}' tall at 1&quot; = {exportMeta.plotScaleFeetPerInch}'.
           {contentBounds
-            ? ` Current parcel/point spread is about ${plotDiagnostics.contentWidthFeet.toFixed(0)}' x ${plotDiagnostics.contentHeightFeet.toFixed(0)}' and ${plotDiagnostics.fits ? "fits on this sheet." : "may clip or need a smaller scale."}`
+            ? ` Current parcel/point spread is about ${plotDiagnostics.contentWidthFeet.toFixed(0)}' x ${plotDiagnostics.contentHeightFeet.toFixed(0)}' and ${plotDiagnostics.fits ? "fits on this sheet." : `will likely require ${plotDiagnostics.estimatedSheetColumns} x ${plotDiagnostics.estimatedSheetRows} sheets or a smaller scale.`}`
             : " No parcel or imported point bounds are available yet."}
+        </div>
+      ) : null}
+      {exportMeta.plotMode === "fixed-scale" && !plotDiagnostics.fits ? (
+        <div className="inline-notice inline-notice-info">
+          Matchline planning: this content is larger than one {formatPageSizeLabel(exportMeta.pageSize)} sheet at 1&quot; = {exportMeta.plotScaleFeetPerInch}'. The preview will keep a single sheet, but the print title block and map overlay now flag the recommended multi-sheet split.
         </div>
       ) : null}
       <div className="map-panel export-only-map-panel">
