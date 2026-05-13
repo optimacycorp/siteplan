@@ -28,7 +28,9 @@ type QuickSiteState = {
     sheetNumber: string;
     revision: string;
     notes: string;
-    pageSize: "letter" | "tabloid";
+    pageSize: "letter" | "tabloid" | "arch-d";
+    plotMode: "visual-fit" | "fixed-scale";
+    plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
   };
   layerVisibility: Record<string, boolean>;
   mapFocusRequest: { key: string; bounds: [[number, number], [number, number]]; maxZoom?: number } | null;
@@ -66,7 +68,9 @@ type QuickSiteState = {
       sheetNumber: string;
       revision: string;
       notes: string;
-      pageSize: "letter" | "tabloid";
+      pageSize: "letter" | "tabloid" | "arch-d";
+      plotMode: "visual-fit" | "fixed-scale";
+      plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
     }>,
   ) => void;
   hydrateExportSession: (payload: {
@@ -89,7 +93,9 @@ type QuickSiteState = {
       sheetNumber: string;
       revision: string;
       notes: string;
-      pageSize: "letter" | "tabloid";
+      pageSize: "letter" | "tabloid" | "arch-d";
+      plotMode: "visual-fit" | "fixed-scale";
+      plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
     };
     layerVisibility: Record<string, boolean>;
   }) => void;
@@ -130,6 +136,8 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
     notes:
       "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, contours, and public records should be independently verified before design, permitting, construction, or conveyance use.",
     pageSize: "letter",
+    plotMode: "visual-fit",
+    plotScaleFeetPerInch: 20,
   },
   layerVisibility: {
     parcel: true,
@@ -238,6 +246,8 @@ export const useQuickSiteStore = create<QuickSiteState>((set) => ({
         notes:
           "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, contours, and public records should be independently verified before design, permitting, construction, or conveyance use.",
         pageSize: "letter",
+        plotMode: "visual-fit",
+        plotScaleFeetPerInch: 20,
       },
       layerVisibility: {
         parcel: true,

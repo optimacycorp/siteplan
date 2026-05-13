@@ -133,6 +133,14 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             </p>
           </div>
           <div>
+            <div className="print-section-title">Plot scale</div>
+            <p>
+              {exportMeta.plotMode === "fixed-scale"
+                ? `1" = ${exportMeta.plotScaleFeetPerInch}' at ${exportMeta.pageSize === "arch-d" ? "24x36" : exportMeta.pageSize}`
+                : "Visual fit (not fixed scale)"}
+            </p>
+          </div>
+          <div>
             <div className="print-section-title">Source</div>
             <p>
               {parcel?.sourceKey || "local parcel cache"}
@@ -144,7 +152,9 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
           <div>
             <div className="print-section-title">Disclaimer</div>
             <p>
-              {contoursVisible
+              {exportMeta.plotMode === "fixed-scale"
+                ? `Scale valid only when printed at 100% on ${exportMeta.pageSize === "arch-d" ? "ARCH D 24x36" : exportMeta.pageSize}. Do not use fit-to-page scaling.`
+                : contoursVisible
                 ? `Contours/elevation context shown from public USGS 3DEP/The National Map sources in ${contourUnits}. For planning only; verify with survey-grade field data where required.`
                 : "Conceptual planning exhibit only. This drawing is not a boundary survey, improvement survey plat, legal description, or construction document. Parcel data, imagery, and public records should be independently verified."}
             </p>
@@ -204,6 +214,14 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             <div>
               <span>Printed</span>
               <strong>{printedAt}</strong>
+            </div>
+            <div>
+              <span>Plot scale</span>
+              <strong>
+                {exportMeta.plotMode === "fixed-scale"
+                  ? `1" = ${exportMeta.plotScaleFeetPerInch}'`
+                  : "Visual fit"}
+              </strong>
             </div>
             <div>
               <span>Prepared for</span>

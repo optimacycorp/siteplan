@@ -29,7 +29,9 @@ export type ExportSessionPayload = {
     sheetNumber: string;
     revision: string;
     notes: string;
-    pageSize: "letter" | "tabloid";
+    pageSize: "letter" | "tabloid" | "arch-d";
+    plotMode: "visual-fit" | "fixed-scale";
+    plotScaleFeetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100;
   };
   layerVisibility: Record<string, boolean>;
   drawings: DrawingFeature[];

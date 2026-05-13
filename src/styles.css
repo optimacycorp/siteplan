@@ -94,7 +94,7 @@ select {
 
 .export-preview-toolbar {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr repeat(3, auto) auto;
   gap: 1rem;
   align-items: end;
   margin-bottom: 1rem;
@@ -823,6 +823,11 @@ select {
     background: #fff;
   }
 
+  .export-only-shell-arch-d .map-panel {
+    min-height: 22.5in;
+    height: 22.5in;
+  }
+
   .map-canvas {
     inset: 0;
   }
@@ -862,5 +867,9 @@ select {
 
   .print-details-page {
     min-height: 7.4in;
+  }
+
+  .export-only-shell-arch-d .print-details-page {
+    min-height: 22.5in;
   }
 }

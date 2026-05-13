@@ -7,6 +7,22 @@ import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { PrintPlanSheet } from "./PrintPlanSheet";
 
+const PLOT_FRAME_INCHES: Record<"letter" | "tabloid" | "arch-d", { width: number; height: number }> = {
+  letter: { width: 10.3, height: 7.4 },
+  tabloid: { width: 16.3, height: 9.9 },
+  "arch-d": { width: 35.3, height: 22.5 },
+};
+
+function feetToLatitudeDegrees(feet: number) {
+  return (feet * 0.3048) / 111_320;
+}
+
+function feetToLongitudeDegrees(feet: number, latitude: number) {
+  const cosine = Math.cos((latitude * Math.PI) / 180);
+  const safeCosine = Math.max(0.2, Math.abs(cosine));
+  return (feet * 0.3048) / (111_320 * safeCosine);
+}
+
 export function ExportOnlyApp() {
   const [ready, setReady] = useState(false);
   const [exportMode, setExportMode] = useState<"default" | "streets-context" | "streets-detail" | "satellite">("default");
@@ -29,6 +45,22 @@ export function ExportOnlyApp() {
       [Math.min(acc[0][0], next[0][0]), Math.min(acc[0][1], next[0][1])],
       [Math.max(acc[1][0], next[1][0]), Math.max(acc[1][1], next[1][1])],
     ]);
+  }
+
+  function fixedScaleBoundsForCenter(
+    center: [number, number],
+    pageSize: "letter" | "tabloid" | "arch-d",
+    feetPerInch: 10 | 20 | 30 | 40 | 50 | 60 | 100,
+  ): [[number, number], [number, number]] {
+    const frame = PLOT_FRAME_INCHES[pageSize];
+    const halfWidthFeet = (frame.width * feetPerInch) / 2;
+    const halfHeightFeet = (frame.height * feetPerInch) / 2;
+    const latDelta = feetToLatitudeDegrees(halfHeightFeet);
+    const lngDelta = feetToLongitudeDegrees(halfWidthFeet, center[1]);
+    return [
+      [center[0] - lngDelta, center[1] - latDelta],
+      [center[0] + lngDelta, center[1] + latDelta],
+    ];
   }
 
   useEffect(() => {
@@ -73,10 +105,29 @@ export function ExportOnlyApp() {
         focusMapBounds(mergedBounds, payload.importedPoints.length ? 20 : 19);
       }
     }
+    if (payload.exportMeta.plotMode === "fixed-scale" && payload.selectedParcel?.centroid) {
+      focusMapBounds(
+        fixedScaleBoundsForCenter(
+          payload.selectedParcel.centroid,
+          payload.exportMeta.pageSize,
+          payload.exportMeta.plotScaleFeetPerInch,
+        ),
+      );
+    }
     setReady(true);
   }, [focusMapBounds, hydrateDrawings, hydratePoints, hydrateQuickSite]);
 
   function centerOnParcel() {
+    if (exportMeta.plotMode === "fixed-scale" && selectedParcel?.centroid) {
+      focusMapBounds(
+        fixedScaleBoundsForCenter(
+          selectedParcel.centroid,
+          exportMeta.pageSize,
+          exportMeta.plotScaleFeetPerInch,
+        ),
+      );
+      return;
+    }
     const parcelBounds = selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null;
     if (framingMode === "fit-to-content" && parcelBounds) {
       focusMapBounds(parcelBounds, 19);
@@ -99,6 +150,16 @@ export function ExportOnlyApp() {
     const targetPoint =
       importedPoints.find((point) => point.id === selectedPointId) ?? importedPoints[0] ?? null;
     if (!targetPoint) return;
+    if (exportMeta.plotMode === "fixed-scale") {
+      focusMapBounds(
+        fixedScaleBoundsForCenter(
+          [targetPoint.lng, targetPoint.lat],
+          exportMeta.pageSize,
+          exportMeta.plotScaleFeetPerInch,
+        ),
+      );
+      return;
+    }
     if (framingMode === "fit-to-content") {
       const parcelBounds = selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null;
       const pointClusterBounds = pointBounds(importedPoints.map((point) => ({ lng: point.lng, lat: point.lat })));
@@ -135,9 +196,11 @@ export function ExportOnlyApp() {
     style.id = styleId;
     style.media = "print";
     style.textContent =
-      exportMeta.pageSize === "tabloid"
-        ? "@page { size: 17in 11in; margin: 0.35in; }"
-        : "@page { size: 11in 8.5in; margin: 0.35in; }";
+      exportMeta.pageSize === "arch-d"
+        ? "@page { size: 36in 24in; margin: 0.35in; }"
+        : exportMeta.pageSize === "tabloid"
+          ? "@page { size: 17in 11in; margin: 0.35in; }"
+          : "@page { size: 11in 8.5in; margin: 0.35in; }";
     if (!existing) {
       document.head.appendChild(style);
     }
@@ -177,12 +240,55 @@ export function ExportOnlyApp() {
             value={exportMeta.pageSize}
             onChange={(event) =>
               setExportMeta({
-                pageSize: event.target.value === "tabloid" ? "tabloid" : "letter",
+                pageSize:
+                  event.target.value === "arch-d"
+                    ? "arch-d"
+                    : event.target.value === "tabloid"
+                      ? "tabloid"
+                      : "letter",
               })
             }
           >
             <option value="letter">Letter landscape</option>
             <option value="tabloid">Tabloid landscape</option>
+            <option value="arch-d">ARCH D 24x36</option>
+          </select>
+        </label>
+        <label className="field-label export-preview-field" htmlFor="export-plot-mode">
+          Plot mode
+          <select
+            className="search-input"
+            id="export-plot-mode"
+            value={exportMeta.plotMode}
+            onChange={(event) =>
+              setExportMeta({
+                plotMode: event.target.value === "fixed-scale" ? "fixed-scale" : "visual-fit",
+              })
+            }
+          >
+            <option value="visual-fit">Visual fit</option>
+            <option value="fixed-scale">Fixed scale</option>
+          </select>
+        </label>
+        <label className="field-label export-preview-field" htmlFor="export-plot-scale">
+          Plot scale
+          <select
+            className="search-input"
+            id="export-plot-scale"
+            value={exportMeta.plotScaleFeetPerInch}
+            onChange={(event) =>
+              setExportMeta({
+                plotScaleFeetPerInch: (Number(event.target.value) || 20) as 10 | 20 | 30 | 40 | 50 | 60 | 100,
+              })
+            }
+          >
+            <option value="10">1&quot; = 10&apos;</option>
+            <option value="20">1&quot; = 20&apos;</option>
+            <option value="30">1&quot; = 30&apos;</option>
+            <option value="40">1&quot; = 40&apos;</option>
+            <option value="50">1&quot; = 50&apos;</option>
+            <option value="60">1&quot; = 60&apos;</option>
+            <option value="100">1&quot; = 100&apos;</option>
           </select>
         </label>
         <label className="field-label export-preview-field" htmlFor="export-framing-mode">
@@ -226,6 +332,11 @@ export function ExportOnlyApp() {
           </button>
         </div>
       </div>
+      {exportMeta.plotMode === "fixed-scale" ? (
+        <div className="inline-notice inline-notice-warning">
+          Fixed-scale output is intended to be printed at 100% on {exportMeta.pageSize === "arch-d" ? "ARCH D 24x36" : exportMeta.pageSize}. Do not use browser fit-to-page scaling if you need the printed scale to remain accurate.
+        </div>
+      ) : null}
       <div className="map-panel export-only-map-panel">
         <QuickMapCanvas />
         <PrintPlanSheet variant="map" exportMode={exportMode} />
