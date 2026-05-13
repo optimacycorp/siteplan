@@ -563,17 +563,21 @@ export function QuickMapCanvas({
     });
     mapRef.current = map;
 
+    const applyExportBounds = () => {
+      map.resize();
+      if (exportBounds) {
+        map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
+          padding: 0,
+          maxZoom: exportMaxZoom,
+          duration: 0,
+        });
+      }
+    };
+
     const resizeObserver =
       typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(() => {
-            map.resize();
-            if (exportBounds) {
-              map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
-                padding: 0,
-                maxZoom: exportMaxZoom,
-                duration: 0,
-              });
-            }
+            applyExportBounds();
           })
         : null;
 
@@ -581,10 +585,25 @@ export function QuickMapCanvas({
       resizeObserver.observe(containerRef.current);
     }
 
+    const handleBeforePrint = () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          applyExportBounds();
+        });
+      });
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeprint", handleBeforePrint);
+    }
+
     return () => {
       map.off("mousemove", handleMouseMove);
       map.off("mouseup", handleMouseUp);
       resizeObserver?.disconnect();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("beforeprint", handleBeforePrint);
+      }
       map.remove();
       mapRef.current = null;
     };
