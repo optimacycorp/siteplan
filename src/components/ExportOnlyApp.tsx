@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { readExportSession } from "../export/exportSession";
-import { geometryBounds, pointBounds } from "../map/mapUtils";
+import { distanceMeters, geometryBounds, pointBounds } from "../map/mapUtils";
 import { QuickMapCanvas } from "../map/QuickMapCanvas";
 import { useDrawingStore } from "../state/drawingStore";
 import { usePointImportStore } from "../state/pointImportStore";
@@ -62,6 +62,58 @@ export function ExportOnlyApp() {
       [center[0] + lngDelta, center[1] + latDelta],
     ];
   }
+
+  const contentBounds = useMemo(
+    () =>
+      mergeBounds(
+        [
+          selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null,
+          importedPoints.length
+            ? pointBounds(importedPoints.map((point) => ({ lng: point.lng, lat: point.lat })))
+            : null,
+        ].filter(Boolean) as Array<[[number, number], [number, number]]>,
+      ),
+    [importedPoints, selectedParcel],
+  );
+
+  const plotDiagnostics = useMemo(() => {
+    const frame = PLOT_FRAME_INCHES[exportMeta.pageSize];
+    const sheetWidthFeet = frame.width * exportMeta.plotScaleFeetPerInch;
+    const sheetHeightFeet = frame.height * exportMeta.plotScaleFeetPerInch;
+
+    if (!contentBounds) {
+      return {
+        sheetWidthFeet,
+        sheetHeightFeet,
+        contentWidthFeet: 0,
+        contentHeightFeet: 0,
+        fits: true,
+      };
+    }
+
+    const contentWidthFeet =
+      distanceMeters(
+        contentBounds[0][0],
+        contentBounds[0][1],
+        contentBounds[1][0],
+        contentBounds[0][1],
+      ) * 3.28084;
+    const contentHeightFeet =
+      distanceMeters(
+        contentBounds[0][0],
+        contentBounds[0][1],
+        contentBounds[0][0],
+        contentBounds[1][1],
+      ) * 3.28084;
+
+    return {
+      sheetWidthFeet,
+      sheetHeightFeet,
+      contentWidthFeet,
+      contentHeightFeet,
+      fits: contentWidthFeet <= sheetWidthFeet && contentHeightFeet <= sheetHeightFeet,
+    };
+  }, [contentBounds, exportMeta.pageSize, exportMeta.plotScaleFeetPerInch]);
 
   useEffect(() => {
     const payload = readExportSession();
@@ -335,6 +387,14 @@ export function ExportOnlyApp() {
       {exportMeta.plotMode === "fixed-scale" ? (
         <div className="inline-notice inline-notice-warning">
           Fixed-scale output is intended to be printed at 100% on {exportMeta.pageSize === "arch-d" ? "ARCH D 24x36" : exportMeta.pageSize}. Do not use browser fit-to-page scaling if you need the printed scale to remain accurate.
+        </div>
+      ) : null}
+      {exportMeta.plotMode === "fixed-scale" ? (
+        <div className={`inline-notice ${plotDiagnostics.fits ? "inline-notice-success" : "inline-notice-warning"}`}>
+          Plot frame: about {plotDiagnostics.sheetWidthFeet.toFixed(0)}' wide x {plotDiagnostics.sheetHeightFeet.toFixed(0)}' tall at 1&quot; = {exportMeta.plotScaleFeetPerInch}'.
+          {contentBounds
+            ? ` Current parcel/point spread is about ${plotDiagnostics.contentWidthFeet.toFixed(0)}' x ${plotDiagnostics.contentHeightFeet.toFixed(0)}' and ${plotDiagnostics.fits ? "fits on this sheet." : "may clip or need a smaller scale."}`
+            : " No parcel or imported point bounds are available yet."}
         </div>
       ) : null}
       <div className="map-panel export-only-map-panel">

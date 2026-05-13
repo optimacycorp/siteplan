@@ -224,6 +224,16 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
               </strong>
             </div>
             <div>
+              <span>Sheet size</span>
+              <strong>
+                {exportMeta.pageSize === "arch-d"
+                  ? "ARCH D 24x36"
+                  : exportMeta.pageSize === "tabloid"
+                    ? "Tabloid"
+                    : "Letter"}
+              </strong>
+            </div>
+            <div>
               <span>Prepared for</span>
               <strong>{exportMeta.preparedFor || "-"}</strong>
             </div>
