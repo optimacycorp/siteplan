@@ -124,3 +124,117 @@ export function calculatePlotDiagnostics(options: {
     estimatedSheetCount: estimatedSheetColumns * estimatedSheetRows,
   };
 }
+
+export function buildPlotSheetBounds(options: {
+  pageSize: PlotPageSize;
+  feetPerInch: PlotScaleFeetPerInch;
+  anchor: [number, number];
+  contentBounds: [[number, number], [number, number]] | null;
+  distanceMeters: (
+    lng1: number,
+    lat1: number,
+    lng2: number,
+    lat2: number,
+  ) => number;
+}) {
+  const primaryBounds = fixedScaleBoundsForCenter(
+    options.anchor,
+    options.pageSize,
+    options.feetPerInch,
+  );
+
+  if (!options.contentBounds) {
+    return [
+      {
+        sheetIndex: 0,
+        sheetNumber: "Sheet 1",
+        bounds: primaryBounds,
+      },
+    ];
+  }
+
+  const diagnostics = calculatePlotDiagnostics({
+    pageSize: options.pageSize,
+    feetPerInch: options.feetPerInch,
+    contentBounds: options.contentBounds,
+    distanceMeters: options.distanceMeters,
+  });
+
+  if (diagnostics.fits) {
+    return [
+      {
+        sheetIndex: 0,
+        sheetNumber: "Sheet 1",
+        bounds: primaryBounds,
+      },
+    ];
+  }
+
+  const westFeet =
+    options.contentBounds[0][0] < options.anchor[0]
+      ? options.distanceMeters(
+          options.anchor[0],
+          options.anchor[1],
+          options.contentBounds[0][0],
+          options.anchor[1],
+        ) * 3.28084
+      : 0;
+  const eastFeet =
+    options.contentBounds[1][0] > options.anchor[0]
+      ? options.distanceMeters(
+          options.anchor[0],
+          options.anchor[1],
+          options.contentBounds[1][0],
+          options.anchor[1],
+        ) * 3.28084
+      : 0;
+  const southFeet =
+    options.contentBounds[0][1] < options.anchor[1]
+      ? options.distanceMeters(
+          options.anchor[0],
+          options.anchor[1],
+          options.anchor[0],
+          options.contentBounds[0][1],
+        ) * 3.28084
+      : 0;
+  const northFeet =
+    options.contentBounds[1][1] > options.anchor[1]
+      ? options.distanceMeters(
+          options.anchor[0],
+          options.anchor[1],
+          options.anchor[0],
+          options.contentBounds[1][1],
+        ) * 3.28084
+      : 0;
+
+  const halfWidthFeet = diagnostics.sheetWidthFeet / 2;
+  const halfHeightFeet = diagnostics.sheetHeightFeet / 2;
+  const sheetsLeft = Math.max(0, Math.ceil((westFeet - halfWidthFeet) / diagnostics.sheetWidthFeet));
+  const sheetsRight = Math.max(0, Math.ceil((eastFeet - halfWidthFeet) / diagnostics.sheetWidthFeet));
+  const sheetsDown = Math.max(0, Math.ceil((southFeet - halfHeightFeet) / diagnostics.sheetHeightFeet));
+  const sheetsUp = Math.max(0, Math.ceil((northFeet - halfHeightFeet) / diagnostics.sheetHeightFeet));
+
+  const pages: Array<{
+    sheetIndex: number;
+    sheetNumber: string;
+    bounds: [[number, number], [number, number]];
+  }> = [];
+
+  let sheetIndex = 0;
+  for (let rowOffset = sheetsUp; rowOffset >= -sheetsDown; rowOffset -= 1) {
+    for (let columnOffset = -sheetsLeft; columnOffset <= sheetsRight; columnOffset += 1) {
+      const center: [number, number] = [
+        options.anchor[0] + feetToLongitudeDegrees(columnOffset * diagnostics.sheetWidthFeet, options.anchor[1]),
+        options.anchor[1] + feetToLatitudeDegrees(rowOffset * diagnostics.sheetHeightFeet),
+      ];
+      pages.push({
+        sheetIndex,
+        sheetNumber: `Sheet ${sheetIndex + 1}`,
+        bounds: fixedScaleBoundsForCenter(center, options.pageSize, options.feetPerInch),
+      });
+      sheetIndex += 1;
+    }
+  }
+
+  return pages;
+}

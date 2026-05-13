@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { readExportSession } from "../export/exportSession";
 import {
+  buildPlotSheetBounds,
   calculatePlotDiagnostics,
   fixedScaleBoundsForCenter,
   formatPageSizeLabel,
@@ -18,6 +19,8 @@ export function ExportOnlyApp() {
   const [ready, setReady] = useState(false);
   const [exportMode, setExportMode] = useState<"default" | "streets-context" | "streets-detail" | "satellite">("default");
   const [framingMode, setFramingMode] = useState<"preserve-zoom" | "fit-to-content">("preserve-zoom");
+  const [plotAnchor, setPlotAnchor] = useState<[number, number] | null>(null);
+  const [readySheetKeys, setReadySheetKeys] = useState<string[]>([]);
   const exportMeta = useQuickSiteStore((state) => state.exportMeta);
   const selectedParcel = useQuickSiteStore((state) => state.selectedParcel);
   const mapView = useQuickSiteStore((state) => state.mapView);
@@ -52,6 +55,33 @@ export function ExportOnlyApp() {
     });
   }, [contentBounds, exportMeta.pageSize, exportMeta.plotScaleFeetPerInch]);
 
+  const sheetPages = useMemo(() => {
+    if (exportMeta.plotMode !== "fixed-scale") {
+      return [];
+    }
+    const anchor =
+      plotAnchor ??
+      selectedParcel?.centroid ??
+      (importedPoints[0] ? ([importedPoints[0].lng, importedPoints[0].lat] as [number, number]) : null) ??
+      mapView.center;
+    return buildPlotSheetBounds({
+      pageSize: exportMeta.pageSize,
+      feetPerInch: exportMeta.plotScaleFeetPerInch,
+      anchor,
+      contentBounds,
+      distanceMeters,
+    });
+  }, [
+    contentBounds,
+    exportMeta.pageSize,
+    exportMeta.plotMode,
+    exportMeta.plotScaleFeetPerInch,
+    importedPoints,
+    mapView.center,
+    plotAnchor,
+    selectedParcel?.centroid,
+  ]);
+
   useEffect(() => {
     const payload = readExportSession();
     if (!payload) {
@@ -77,6 +107,7 @@ export function ExportOnlyApp() {
       transform: payload.pointTransform,
       selectedPointId: payload.selectedPointId,
     });
+    setPlotAnchor(payload.selectedParcel?.centroid ?? payload.mapView.center ?? null);
     if (payload.exportMode === "streets-detail") {
       const bounds = [
         payload.selectedParcel?.geometry ? geometryBounds(payload.selectedParcel.geometry) : null,
@@ -107,6 +138,9 @@ export function ExportOnlyApp() {
   }, [focusMapBounds, hydrateDrawings, hydratePoints, hydrateQuickSite]);
 
   function centerOnParcel() {
+    if (selectedParcel?.centroid) {
+      setPlotAnchor(selectedParcel.centroid);
+    }
     if (exportMeta.plotMode === "fixed-scale" && selectedParcel?.centroid) {
       focusMapBounds(
         fixedScaleBoundsForCenter(
@@ -139,6 +173,7 @@ export function ExportOnlyApp() {
     const targetPoint =
       importedPoints.find((point) => point.id === selectedPointId) ?? importedPoints[0] ?? null;
     if (!targetPoint) return;
+    setPlotAnchor([targetPoint.lng, targetPoint.lat]);
     if (exportMeta.plotMode === "fixed-scale") {
       focusMapBounds(
         fixedScaleBoundsForCenter(
@@ -166,16 +201,17 @@ export function ExportOnlyApp() {
   useEffect(() => {
     if (!ready) return;
     if (new URLSearchParams(window.location.search).get("autoprint") !== "1") return;
-
-    const handleMapReady = () => {
-      window.setTimeout(() => window.print(), 150);
-    };
-
-    window.addEventListener("quicksite-export-map-ready", handleMapReady, { once: true });
+    const expectedSheets = exportMeta.plotMode === "fixed-scale" ? Math.max(1, sheetPages.length) : 1;
+    if (readySheetKeys.length < expectedSheets) return;
+    const timer = window.setTimeout(() => window.print(), 150);
     return () => {
-      window.removeEventListener("quicksite-export-map-ready", handleMapReady);
+      window.clearTimeout(timer);
     };
-  }, [ready]);
+  }, [exportMeta.plotMode, ready, readySheetKeys.length, sheetPages.length]);
+
+  useEffect(() => {
+    setReadySheetKeys([]);
+  }, [exportMeta.pageSize, exportMeta.plotMode, exportMeta.plotScaleFeetPerInch, plotAnchor, exportMode]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -204,7 +240,7 @@ export function ExportOnlyApp() {
   }
 
   return (
-    <div className={`export-only-shell export-only-shell-${exportMeta.pageSize}`}>
+      <div className={`export-only-shell export-only-shell-${exportMeta.pageSize}`}>
       <div className="export-preview-toolbar">
         <div>
           <strong>Export preview</strong>
@@ -347,11 +383,40 @@ export function ExportOnlyApp() {
           Matchline planning: this content is larger than one {formatPageSizeLabel(exportMeta.pageSize)} sheet at 1&quot; = {exportMeta.plotScaleFeetPerInch}'. The preview will keep a single sheet, but the print title block and map overlay now flag the recommended multi-sheet split.
         </div>
       ) : null}
-      <div className="map-panel export-only-map-panel">
-        <QuickMapCanvas />
-        <PrintPlanSheet variant="map" exportMode={exportMode} />
-      </div>
-      <PrintPlanSheet variant="details" exportMode={exportMode} />
+      {exportMeta.plotMode === "fixed-scale" && sheetPages.length ? (
+        sheetPages.map((sheetPage) => (
+          <div className="map-panel export-only-map-panel" key={`${sheetPage.sheetNumber}-${sheetPage.sheetIndex}`}>
+            <QuickMapCanvas
+              exportBounds={sheetPage.bounds}
+              onExportReady={() =>
+                setReadySheetKeys((current) =>
+                  current.includes(sheetPage.sheetNumber) ? current : [...current, sheetPage.sheetNumber],
+                )
+              }
+            />
+            <PrintPlanSheet
+              variant="map"
+              exportMode={exportMode}
+              sheetIndex={sheetPage.sheetIndex}
+              sheetCount={sheetPages.length}
+            />
+          </div>
+        ))
+      ) : (
+        <div className="map-panel export-only-map-panel">
+          <QuickMapCanvas
+            onExportReady={() =>
+              setReadySheetKeys((current) => (current.includes("Sheet 1") ? current : [...current, "Sheet 1"]))
+            }
+          />
+          <PrintPlanSheet variant="map" exportMode={exportMode} sheetIndex={0} sheetCount={1} />
+        </div>
+      )}
+      <PrintPlanSheet
+        variant="details"
+        exportMode={exportMode}
+        sheetCount={exportMeta.plotMode === "fixed-scale" && sheetPages.length ? sheetPages.length : 1}
+      />
     </div>
   );
 }

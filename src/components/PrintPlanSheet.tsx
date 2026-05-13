@@ -27,9 +27,16 @@ function formatFeatureLabel(type: string, count: number) {
 type PrintPlanSheetProps = {
   variant: "map" | "details";
   exportMode?: "default" | "streets-context" | "streets-detail" | "satellite";
+  sheetIndex?: number;
+  sheetCount?: number;
 };
 
-export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanSheetProps) {
+export function PrintPlanSheet({
+  variant,
+  exportMode = "default",
+  sheetIndex = 0,
+  sheetCount = 1,
+}: PrintPlanSheetProps) {
   const parcel = useQuickSiteStore((state) => state.selectedParcel);
   const basemap = useQuickSiteStore((state) => state.basemap);
   const contoursVisible = useQuickSiteStore((state) => Boolean(state.layerVisibility.contours));
@@ -150,7 +157,11 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             </div>
             <div>
               <span>Sheet</span>
-              <strong>{exportMeta.sheetNumber || "-"}</strong>
+              <strong>
+                {sheetCount > 1
+                  ? `${sheetIndex + 1} of ${sheetCount}`
+                  : exportMeta.sheetNumber || "-"}
+              </strong>
             </div>
             <div>
               <span>Revision</span>
@@ -262,9 +273,9 @@ export function PrintPlanSheet({ variant, exportMode = "default" }: PrintPlanShe
             <p>{parcel?.address || parcel?.headline || "Selected parcel"}</p>
           </div>
           <div className="print-details-sheet-meta">
-            <span>Sheet</span>
-            <strong>{exportMeta.sheetNumber || "-"}</strong>
-          </div>
+              <span>Sheet</span>
+              <strong>{sheetCount > 1 ? `Set of ${sheetCount}` : exportMeta.sheetNumber || "-"}</strong>
+            </div>
         </div>
 
         <div className="print-card print-card-details-metadata">

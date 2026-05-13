@@ -22,7 +22,17 @@ const defaultCenter: [number, number] = [
 ];
 const defaultZoom = Number(import.meta.env.VITE_DEFAULT_ZOOM ?? 17);
 
-export function QuickMapCanvas() {
+type QuickMapCanvasProps = {
+  exportBounds?: [[number, number], [number, number]] | null;
+  exportMaxZoom?: number;
+  onExportReady?: () => void;
+};
+
+export function QuickMapCanvas({
+  exportBounds = null,
+  exportMaxZoom = 19,
+  onExportReady,
+}: QuickMapCanvasProps) {
   const isExportView =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("export") === "1";
@@ -146,9 +156,15 @@ export function QuickMapCanvas() {
   }
 
   function dispatchExportReady() {
-    if (!isExportView || exportReadyDispatchedRef.current || typeof window === "undefined") return;
+    if (!isExportView || exportReadyDispatchedRef.current) return;
     exportReadyDispatchedRef.current = true;
-    window.dispatchEvent(new CustomEvent("quicksite-export-map-ready"));
+    if (onExportReady) {
+      onExportReady();
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("quicksite-export-map-ready"));
+    }
   }
 
   function scheduleExportReady(map: maplibregl.Map) {
@@ -535,6 +551,13 @@ export function QuickMapCanvas() {
 
     map.on("load", () => {
       syncAppLayers(map);
+      if (exportBounds) {
+        map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
+          padding: 0,
+          maxZoom: exportMaxZoom,
+          duration: 0,
+        });
+      }
       scheduleExportReady(map);
     });
     mapRef.current = map;
@@ -669,26 +692,39 @@ export function QuickMapCanvas() {
   }, [selectedParcel?.llUuid, selectedParcel?.centroid, selectedParcel?.geometry]);
 
   useEffect(() => {
+    if (!isExportView) return;
     const map = mapRef.current;
-    if (!map || !mapFocusRequest) return;
+    if (!map || !exportBounds) return;
+    exportReadyDispatchedRef.current = false;
+    map.fitBounds(new LngLatBounds(exportBounds[0], exportBounds[1]), {
+      padding: 0,
+      maxZoom: exportMaxZoom,
+      duration: 0,
+    });
+    scheduleExportReady(map);
+  }, [exportBounds, exportMaxZoom, isExportView]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapFocusRequest || (isExportView && exportBounds)) return;
     map.fitBounds(new LngLatBounds(mapFocusRequest.bounds[0], mapFocusRequest.bounds[1]), {
       padding: 80,
       maxZoom: mapFocusRequest.maxZoom ?? 19,
       duration: 350,
     });
     clearMapFocusRequest();
-  }, [clearMapFocusRequest, mapFocusRequest]);
+  }, [clearMapFocusRequest, exportBounds, isExportView, mapFocusRequest]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapFocusPointRequest) return;
+    if (!map || !mapFocusPointRequest || (isExportView && exportBounds)) return;
     map.flyTo({
       center: mapFocusPointRequest.center,
       zoom: mapFocusPointRequest.zoom ?? Math.max(map.getZoom(), 18),
       duration: 350,
     });
     clearMapFocusPointRequest();
-  }, [clearMapFocusPointRequest, mapFocusPointRequest]);
+  }, [clearMapFocusPointRequest, exportBounds, isExportView, mapFocusPointRequest]);
 
   const mapHint =
     selectedParcelLoading
