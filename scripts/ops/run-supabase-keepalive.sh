@@ -12,5 +12,10 @@ if [[ -f "${ENV_FILE}" ]]; then
   set +a
 fi
 
+JITTER_MAX="${OPEN_PARCEL_KEEPALIVE_JITTER_SECONDS_MAX:-0}"
+if [[ "${JITTER_MAX}" =~ ^[0-9]+$ ]] && [[ "${JITTER_MAX}" -gt 0 ]]; then
+  sleep "$(( RANDOM % (JITTER_MAX + 1) ))"
+fi
+
 cd "${ROOT_DIR}"
 exec node "${SCRIPT_DIR}/supabase-keepalive.mjs" "$@"
