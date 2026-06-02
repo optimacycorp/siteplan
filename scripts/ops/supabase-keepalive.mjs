@@ -50,8 +50,6 @@ function summarizeRows(rows, limit = 2) {
       null;
     const id =
       row.id ||
-      row.ll_uuid ||
-      row.llUuid ||
       row.external_id ||
       row.externalId ||
       null;
@@ -264,7 +262,7 @@ async function main() {
       "parcels.select",
       () =>
         restGet(
-          "/rest/v1/parcels?select=id,ll_uuid,source_key,external_id,parcel_number,apn,county,state,updated_at&order=updated_at.desc&limit=5",
+          "/rest/v1/parcels?select=id,source_key,external_id,parcel_number,apn,owner_name,situs_address,created_at,updated_at&order=updated_at.desc&limit=5",
         ),
     );
 
