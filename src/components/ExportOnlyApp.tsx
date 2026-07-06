@@ -10,8 +10,10 @@ import {
   PRINT_PAGE_SIZES,
 } from "../export/plotSheet";
 import { distanceMeters, geometryBounds, pointBounds } from "../map/mapUtils";
+import { featureCollectionBounds } from "../services/gisImportService";
 import { QuickMapCanvas } from "../map/QuickMapCanvas";
 import { useDrawingStore } from "../state/drawingStore";
+import { useGisLayerStore } from "../state/gisLayerStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { PrintPlanSheet } from "./PrintPlanSheet";
@@ -30,6 +32,8 @@ export function ExportOnlyApp() {
   const focusMapPoint = useQuickSiteStore((state) => state.focusMapPoint);
   const hydrateQuickSite = useQuickSiteStore((state) => state.hydrateExportSession);
   const hydrateDrawings = useDrawingStore((state) => state.hydrateExportSession);
+  const hydrateGisLayers = useGisLayerStore((state) => state.hydrateExportSession);
+  const gisLayers = useGisLayerStore((state) => state.layers);
   const hydratePoints = usePointImportStore((state) => state.hydrateExportSession);
   const importedPoints = usePointImportStore((state) => state.importedPoints);
   const selectedPointId = usePointImportStore((state) => state.selectedPointId);
@@ -39,12 +43,13 @@ export function ExportOnlyApp() {
       mergeBounds(
         [
           selectedParcel?.geometry ? geometryBounds(selectedParcel.geometry) : null,
+          ...gisLayers.map((layer) => featureCollectionBounds(layer.data)),
           importedPoints.length
             ? pointBounds(importedPoints.map((point) => ({ lng: point.lng, lat: point.lat })))
             : null,
         ].filter(Boolean) as Array<[[number, number], [number, number]]>,
       ),
-    [importedPoints, selectedParcel],
+    [gisLayers, importedPoints, selectedParcel],
   );
 
   const plotDiagnostics = useMemo(() => {
@@ -104,6 +109,10 @@ export function ExportOnlyApp() {
     hydrateDrawings({
       drawings: payload.drawings,
     });
+    hydrateGisLayers({
+      layers: payload.gisLayers,
+      selectedLayerId: payload.selectedGisLayerId,
+    });
     hydratePoints({
       importedPoints: payload.importedPoints,
       transform: payload.pointTransform,
@@ -137,7 +146,7 @@ export function ExportOnlyApp() {
       );
     }
     setReady(true);
-  }, [focusMapBounds, hydrateDrawings, hydratePoints, hydrateQuickSite]);
+  }, [focusMapBounds, hydrateDrawings, hydrateGisLayers, hydratePoints, hydrateQuickSite]);
 
   function centerOnParcel() {
     if (selectedParcel?.centroid) {

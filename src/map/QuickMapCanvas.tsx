@@ -7,6 +7,7 @@ import {
 import { fetchTerrainContours } from "../services/terrainService";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import { useDrawingStore } from "../state/drawingStore";
+import { useGisLayerStore } from "../state/gisLayerStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { ParcelProviderUnavailableError } from "../data/providers/parcels/types";
 import { getBasemapDefinition } from "./basemapRegistry";
@@ -73,6 +74,7 @@ export function QuickMapCanvas({
     selectedParcelLoading,
   } = useQuickSiteStore();
   const importedPoints = usePointImportStore((state) => state.importedPoints);
+  const gisLayers = useGisLayerStore((state) => state.layers);
   const selectedPointId = usePointImportStore((state) => state.selectedPointId);
   const selectPoint = usePointImportStore((state) => state.selectPoint);
   const {
@@ -121,6 +123,7 @@ export function QuickMapCanvas({
         neighbors,
         drawings,
         importedPoints,
+        gisLayers,
         activePoints,
         selectedDrawingId,
         selectedVertex,
@@ -132,6 +135,7 @@ export function QuickMapCanvas({
       neighbors,
       drawings,
       importedPoints,
+      gisLayers,
       activePoints,
       selectedDrawingId,
       selectedVertex,

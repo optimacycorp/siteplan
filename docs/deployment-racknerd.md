@@ -144,3 +144,13 @@ curl -i http://127.0.0.1:8787/health
 sudo nginx -t
 sudo certbot renew --dry-run
 ```
+
+## Sprint 5 GIS smoke test
+
+After publishing a new build on RackNerd:
+
+```bash
+bash scripts/deploy/test-sprint-5-gis-data-manager.sh https://siteplan.gomil.com
+```
+
+That script verifies the deployed site and the bundled GIS sample fixtures, then prints the manual browser checklist for the GIS Data Manager sprint.

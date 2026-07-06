@@ -13,6 +13,7 @@ import { PropertiesPanel } from "./components/PropertiesPanel";
 import { SelectedParcelCard } from "./components/SelectedParcelCard";
 import { TerrainSummary } from "./components/TerrainSummary";
 import { WorkflowSteps } from "./components/WorkflowSteps";
+import { GisDataPanel } from "./modules/gisData/GisDataPanel";
 import { QuickMapCanvas } from "./map/QuickMapCanvas";
 import { useEffect } from "react";
 import { useQuickSiteStore } from "./state/quickSiteStore";
@@ -117,6 +118,7 @@ export function App() {
           <SelectedParcelCard />
           <DrawingToolbar />
           <PointImportPanel />
+          <GisDataPanel />
           <LayerPanel />
           <TerrainSummary />
         </>

@@ -1,5 +1,6 @@
 import type { DrawingFeature } from "../types/drawing";
 import type { ImportedPoint } from "../types/fieldPoint";
+import type { GisLayer } from "../types/gisLayer";
 import type { ParcelDetail, ParcelNeighbor } from "../types/parcel";
 import type { MapLayerDescriptor } from "./mapLayerManager";
 import {
@@ -52,6 +53,7 @@ export function buildMapLayers(input: {
   neighbors: ParcelNeighbor[];
   drawings: DrawingFeature[];
   importedPoints: ImportedPoint[];
+  gisLayers: GisLayer[];
   activePoints?: DrawingFeature["points"];
   selectedDrawingId?: string | null;
   selectedVertex?: { drawingId: string; pointIndex: number } | null;
@@ -194,6 +196,23 @@ export function buildMapLayers(input: {
       }) as GeoJSON.Feature,
   );
 
+  const visibleGisLayers = input.gisLayers.filter((layer) => layer.visible);
+  const gisPolygonFeatures = visibleGisLayers.flatMap((layer) =>
+    layer.data.features.filter(
+      (feature) => feature.geometry?.type === "Polygon" || feature.geometry?.type === "MultiPolygon",
+    ),
+  );
+  const gisLineFeatures = visibleGisLayers.flatMap((layer) =>
+    layer.data.features.filter(
+      (feature) => feature.geometry?.type === "LineString" || feature.geometry?.type === "MultiLineString",
+    ),
+  );
+  const gisPointFeatures = visibleGisLayers.flatMap((layer) =>
+    layer.data.features.filter(
+      (feature) => feature.geometry?.type === "Point" || feature.geometry?.type === "MultiPoint",
+    ),
+  );
+
   const selectedDrawing =
     input.drawings.find((drawing) => drawing.id === input.selectedDrawingId) ?? null;
 
@@ -276,6 +295,80 @@ export function buildMapLayers(input: {
       : [];
 
   return [
+    {
+      id: "gis-polygons-fill",
+      sourceId: "gis-polygons",
+      source: { type: "geojson", data: fc(gisPolygonFeatures) },
+      layer: {
+        type: "fill",
+        paint: {
+          "fill-color": "#0f766e",
+          "fill-opacity": 0.18,
+        },
+      },
+      visible: input.layerVisibility.gisLayers,
+    },
+    {
+      id: "gis-polygons-outline",
+      sourceId: "gis-polygons",
+      source: { type: "geojson", data: fc(gisPolygonFeatures) },
+      layer: {
+        type: "line",
+        paint: {
+          "line-color": "#0f766e",
+          "line-width": 2,
+        },
+      },
+      visible: input.layerVisibility.gisLayers,
+    },
+    {
+      id: "gis-lines",
+      sourceId: "gis-lines",
+      source: { type: "geojson", data: fc(gisLineFeatures) },
+      layer: {
+        type: "line",
+        paint: {
+          "line-color": "#0f766e",
+          "line-width": 3,
+        },
+      },
+      visible: input.layerVisibility.gisLayers,
+    },
+    {
+      id: "gis-points",
+      sourceId: "gis-points",
+      source: { type: "geojson", data: fc(gisPointFeatures) },
+      layer: {
+        type: "circle",
+        paint: {
+          "circle-radius": 5,
+          "circle-color": "#0f766e",
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 1.5,
+        },
+      },
+      visible: input.layerVisibility.gisLayers,
+    },
+    {
+      id: "gis-point-labels",
+      sourceId: "gis-points",
+      source: { type: "geojson", data: fc(gisPointFeatures) },
+      layer: {
+        type: "symbol",
+        layout: {
+          "text-field": ["coalesce", ["get", "label"], ["get", "name"], ["get", "layerName"]],
+          "text-size": 12,
+          "text-offset": [0, 1.1],
+          "text-anchor": "top",
+        },
+        paint: {
+          "text-color": "#134e4a",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 1.2,
+        },
+      },
+      visible: input.layerVisibility.gisLayerLabels && input.layerVisibility.gisLayers,
+    },
     {
       id: "neighbors-fill",
       sourceId: "neighbors",

@@ -1,10 +1,12 @@
 import { useDrawingStore } from "../state/drawingStore";
+import { useGisLayerStore } from "../state/gisLayerStore";
 import { usePointImportStore } from "../state/pointImportStore";
 import { useQuickSiteStore } from "../state/quickSiteStore";
 import type { BasemapKey } from "../map/basemapRegistry";
 import type { PlotMode, PlotPageSize, PlotScaleFeetPerInch } from "./plotSheet";
 import type { DrawingFeature } from "../types/drawing";
 import type { ImportedPoint, LocalPointTransform } from "../types/fieldPoint";
+import type { GisLayer } from "../types/gisLayer";
 import type { ParcelDetail, ParcelNeighbor } from "../types/parcel";
 
 const EXPORT_SESSION_KEY = "optimacy-quicksite-export-session";
@@ -36,6 +38,8 @@ export type ExportSessionPayload = {
   };
   layerVisibility: Record<string, boolean>;
   drawings: DrawingFeature[];
+  gisLayers: GisLayer[];
+  selectedGisLayerId: string | null;
   importedPoints: ImportedPoint[];
   selectedPointId: string | null;
   pointTransform: LocalPointTransform;
@@ -48,6 +52,7 @@ export function createExportSessionPayload(options?: {
   const quickSiteState = useQuickSiteStore.getState();
   const drawingState = useDrawingStore.getState();
   const pointImportState = usePointImportStore.getState();
+  const gisLayerState = useGisLayerStore.getState();
 
   return {
     basemap: options?.basemap ?? quickSiteState.basemap,
@@ -59,6 +64,8 @@ export function createExportSessionPayload(options?: {
     exportMeta: quickSiteState.exportMeta,
     layerVisibility: quickSiteState.layerVisibility,
     drawings: drawingState.drawings,
+    gisLayers: gisLayerState.layers,
+    selectedGisLayerId: gisLayerState.selectedLayerId,
     importedPoints: pointImportState.importedPoints,
     selectedPointId: pointImportState.selectedPointId,
     pointTransform: pointImportState.transform,

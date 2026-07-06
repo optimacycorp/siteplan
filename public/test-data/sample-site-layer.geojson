@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Concept pad",
+        "category": "pad"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-104.89815, 38.87874],
+            [-104.89752, 38.87874],
+            [-104.89752, 38.8792],
+            [-104.89815, 38.8792],
+            [-104.89815, 38.87874]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Access line",
+        "category": "access"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-104.89834, 38.87862],
+          [-104.89796, 38.87882],
+          [-104.8976, 38.87904]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hydrant",
+        "category": "utility"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-104.89786, 38.87891]
+      }
+    }
+  ]
+}
