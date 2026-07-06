@@ -41,6 +41,8 @@ VITE_MARICOPA_CLICK_TOLERANCE_METERS=120
 VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS=240
 VITE_PUEBLO_CLICK_TOLERANCE_METERS=80
 VITE_PUEBLO_CLICK_TOLERANCE_MAX_METERS=180
+VITE_ARCGIS_PORTAL_URL=https://www.arcgis.com
+VITE_ARCGIS_CLIENT_ID=
 ```
 
 Use `VITE_USE_PARCEL_FIXTURES=true` for local UI work without live parcel services.
@@ -51,6 +53,7 @@ Use `VITE_MARICOPA_PARCEL_QUERY_URL` to enable the Maricopa County Assessor parc
 Use `VITE_MARICOPA_CLICK_TOLERANCE_METERS` to control the first nearby parcel search pass in Maricopa County, and `VITE_MARICOPA_CLICK_TOLERANCE_MAX_METERS` to control the wider retry envelope when the first pass still misses.
 Use `VITE_PUEBLO_PARCEL_QUERY_URL` and `VITE_PUEBLO_ADDRESS_QUERY_URL` to enable the Pueblo County parcel and county-address providers, and `VITE_DEFAULT_PARCEL_PROVIDER=pueblo-county-co` if you want Pueblo-area interactions to become the default click/search provider for a southern Colorado deployment.
 Use `VITE_PUEBLO_CLICK_TOLERANCE_METERS` and `VITE_PUEBLO_CLICK_TOLERANCE_MAX_METERS` to control Pueblo County click tolerance when parcel boundaries sit slightly off the geocoded point.
+Use `VITE_ARCGIS_PORTAL_URL` for the ArcGIS Online portal base URL and keep `VITE_ARCGIS_CLIENT_ID` available for future authenticated ArcGIS flows. Sprint 6 currently supports public ArcGIS REST layers without sign-in.
 
 Do not expose provider or Supabase secrets in browser code.
 

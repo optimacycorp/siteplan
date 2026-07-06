@@ -10,6 +10,7 @@ import {
 } from "../../services/gisImportService";
 import { EmptyState } from "../../components/EmptyState";
 import { InlineNotice } from "../../components/InlineNotice";
+import { ArcGISLayerImportPanel } from "./ArcGISLayerImportPanel";
 
 export function GisDataPanel() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -73,6 +74,7 @@ export function GisDataPanel() {
       <InlineNotice tone="info">
         GeoJSON and CSV are active in this sprint. KML, Shapefile, and DXF are recognized but intentionally deferred to server processing.
       </InlineNotice>
+      <ArcGISLayerImportPanel />
       {importMessage ? <InlineNotice tone={importTone}>{importMessage}</InlineNotice> : null}
       {!layers.length ? (
         <EmptyState
