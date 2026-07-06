@@ -469,6 +469,20 @@ function extendBounds(
   coordinates.forEach((entry) => extendBounds(bounds, entry));
 }
 
+function extendGeometryBounds(
+  bounds: { minLng: number; minLat: number; maxLng: number; maxLat: number },
+  geometry: GeoJSON.Geometry | null | undefined,
+) {
+  if (!geometry) return;
+
+  if (geometry.type === "GeometryCollection") {
+    geometry.geometries.forEach((entry) => extendGeometryBounds(bounds, entry));
+    return;
+  }
+
+  extendBounds(bounds, geometry.coordinates);
+}
+
 export function featureCollectionBounds(
   featureCollection: GeoJSON.FeatureCollection,
 ): [[number, number], [number, number]] | null {
@@ -481,7 +495,7 @@ export function featureCollectionBounds(
   };
 
   featureCollection.features.forEach((feature) => {
-    extendBounds(bounds, feature.geometry?.coordinates);
+    extendGeometryBounds(bounds, feature.geometry);
   });
 
   if (![bounds.minLng, bounds.minLat, bounds.maxLng, bounds.maxLat].every(Number.isFinite)) {
